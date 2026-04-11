@@ -1,0 +1,80 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+import {
+  LayoutDashboard, Map, Satellite, BarChart3,
+  ShoppingCart, Users, User, LogOut, Leaf,
+} from "lucide-react"
+import { authService } from "@/services/auth.service"
+import { useRouter } from "next/navigation"
+
+const navItems = [
+  { href: "/dashboard", label: "Início", icon: LayoutDashboard },
+  { href: "/dashboard/areas", label: "Minhas Áreas", icon: Map },
+  { href: "/dashboard/satellite", label: "Satélite", icon: Satellite },
+  { href: "/dashboard/diagnostics", label: "Diagnósticos", icon: BarChart3 },
+  { href: "/dashboard/marketplace", label: "Marketplace", icon: ShoppingCart },
+  { href: "/dashboard/community", label: "Comunidade", icon: Users },
+  { href: "/dashboard/profile", label: "Perfil", icon: User },
+]
+
+export function Sidebar() {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await authService.logout()
+    router.push("/login")
+  }
+
+  return (
+    <aside className="flex flex-col w-64 min-h-screen bg-white border-r border-gray-200 fixed left-0 top-0 bottom-0 z-30">
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+        <div className="w-9 h-9 rounded-xl bg-green-600 flex items-center justify-center">
+          <Leaf className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <span className="text-xl font-black text-gray-900">Sol</span>
+          <span className="text-xl font-black text-green-600">Farm</span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                isActive
+                  ? "bg-green-50 text-green-700 font-semibold"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              )}
+            >
+              <Icon className={cn("w-5 h-5", isActive ? "text-green-600" : "text-gray-400")} />
+              {label}
+              {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-600" />}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-3 py-4 border-t border-gray-100">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
+        >
+          <LogOut className="w-5 h-5" />
+          Sair da conta
+        </button>
+      </div>
+    </aside>
+  )
+}
