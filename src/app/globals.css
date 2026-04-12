@@ -1,17 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f3ee;       /* creme quente — verde-marrom suave */
+  --background: #e8e2d9;       /* terra — verde-marrom bem visível */
   --foreground: #1c1917;
   --primary: #16a34a;
   --primary-dark: #15803d;
   --primary-light: #22c55e;
   --primary-bg: #f0fdf4;
-  --border: #e2ddd6;           /* borda levemente amarronzada */
-  --card: #fdfcf9;             /* card levemente creme */
+  --border: #d4cec5;           /* borda terra */
+  --card: #faf8f4;             /* card creme claro sobre fundo terra */
   --olive: #7c8b5a;            /* verde-marrom (olive) */
-  --olive-light: #f2f0e8;      /* fundo olive claro */
+  --olive-light: #edeade;      /* fundo olive claro */
   --olive-dark: #5a6640;       /* olive escuro pra texto */
+  --sidebar-bg: #f0ece4;       /* sidebar um toque mais claro que o fundo */
 }
 
 @theme inline {
