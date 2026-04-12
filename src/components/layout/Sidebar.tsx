@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Map, Satellite, BarChart3,
-  ShoppingCart, Users, User, LogOut, Leaf, TrendingUp, Zap, Coins,
+  ShoppingCart, Users, User, LogOut, Leaf, TrendingUp, Zap, Coins, Shield,
 } from "lucide-react"
 import { authService } from "@/services/auth.service"
 import { useRouter } from "next/navigation"
@@ -26,6 +26,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const currentUser = authService.getStoredUser()
 
   async function handleLogout() {
     await authService.logout()
@@ -66,6 +67,27 @@ export function Sidebar() {
             </Link>
           )
         })}
+
+        {/* Link Admin — visível apenas para ADMIN */}
+        {currentUser?.role === "ADMIN" && (() => {
+          const href = "/dashboard/admin"
+          const isActive = pathname === href || pathname.startsWith(href)
+          return (
+            <Link
+              href={href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mt-2",
+                isActive
+                  ? "bg-green-100 text-green-800 font-semibold"
+                  : "text-stone-600 hover:bg-[#e5e0d8] hover:text-stone-900"
+              )}
+            >
+              <Shield className={cn("w-5 h-5", isActive ? "text-green-600" : "text-gray-400")} />
+              Admin
+              {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-600" />}
+            </Link>
+          )
+        })()}
       </nav>
 
       {/* Footer */}
