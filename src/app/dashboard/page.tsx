@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { api } from "@/services/api"
 import { authService } from "@/services/auth.service"
 import { healthColor, healthBg, cultureEmoji, cultureLabel, formatDate } from "@/lib/utils"
-import { Map, Plus, BarChart3, ArrowRight, TrendingUp, Activity, Leaf, AlertTriangle } from "lucide-react"
+import { Map, Plus, BarChart3, ArrowRight, TrendingUp, Activity, Leaf, AlertTriangle, Zap } from "lucide-react"
 
 export default function DashboardPage() {
   const [areas, setAreas] = useState<any[]>([])
@@ -42,6 +42,26 @@ export default function DashboardPage() {
           </h1>
           <p className="text-gray-500 mt-1">Veja o estado atual das suas lavouras</p>
         </div>
+
+        {/* Banner upgrade FREE */}
+        {user?.plan === "FREE" && (
+          <div className="mb-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-5 flex items-center justify-between shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">Você está no plano Grátis</p>
+                <p className="text-amber-100 text-xs">Faça upgrade para monitorar até 5 áreas + NDRE + NDWI + plano VRA</p>
+              </div>
+            </div>
+            <Link href="/dashboard/upgrade">
+              <button className="shrink-0 px-4 py-2 bg-white text-amber-600 rounded-xl font-bold text-sm hover:bg-amber-50 transition">
+                Ver planos
+              </button>
+            </Link>
+          </div>
+        )}
 
         {/* Stats cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">

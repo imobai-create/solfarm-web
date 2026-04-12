@@ -1,0 +1,412 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { paymentService, type CheckoutResult } from "@/services/payment.service"
+import { authService } from "@/services/auth.service"
+import {
+  Check, Zap, Crown, Leaf, ArrowRight, Copy, RefreshCw,
+  QrCode, FileText, Loader2, CheckCircle2, AlertCircle, X,
+} from "lucide-react"
+
+// ── tipos locais ──────────────────────────────────────────────
+type BillingType = "PIX" | "BOLETO"
+type PlanId = "FREE" | "CAMPO" | "FAZENDA"
+
+const PLAN_ICONS: Record<PlanId, React.ReactNode> = {
+  FREE: <Leaf className="w-5 h-5 text-green-600" />,
+  CAMPO: <Zap className="w-5 h-5 text-amber-500" />,
+  FAZENDA: <Crown className="w-5 h-5 text-purple-600" />,
+}
+
+const PLAN_COLORS: Record<PlanId, string> = {
+  FREE: "border-green-200",
+  CAMPO: "border-amber-400 ring-2 ring-amber-200",
+  FAZENDA: "border-purple-300",
+}
+
+const PLAN_BTN: Record<PlanId, string> = {
+  FREE: "bg-green-100 text-green-800 hover:bg-green-200",
+  CAMPO: "bg-amber-500 text-white hover:bg-amber-600",
+  FAZENDA: "bg-purple-600 text-white hover:bg-purple-700",
+}
+
+// ─────────────────────────────────────────────────────────────
+export default function UpgradePage() {
+  const [plans, setPlans] = useState<any[]>([])
+  const [currentPlan, setCurrentPlan] = useState<PlanId>("FREE")
+  const [billing, setBilling] = useState<BillingType>("PIX")
+  const [cpfCnpj, setCpfCnpj] = useState("")
+  const [selectedPlan, setSelectedPlan] = useState<"CAMPO" | "FAZENDA" | null>(null)
+  const [checkout, setCheckout] = useState<CheckoutResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [polling, setPolling] = useState(false)
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    paymentService.getPlans().then(setPlans).catch(() => {})
+    const user = authService.getStoredUser()
+    if (user?.plan) setCurrentPlan(user.plan as PlanId)
+  }, [])
+
+  // ── polling de status após checkout ─────────────────────────
+  const pollStatus = useCallback(async (paymentId: string) => {
+    setPolling(true)
+    let tries = 0
+    const interval = setInterval(async () => {
+      tries++
+      try {
+        const s = await paymentService.getStatus(paymentId)
+        if (s.status === "CONFIRMED" || s.status === "RECEIVED") {
+          setPaymentStatus("CONFIRMED")
+          clearInterval(interval)
+          setPolling(false)
+          // Atualiza user no localStorage
+          const user = authService.getStoredUser()
+          if (user && selectedPlan) {
+            user.plan = selectedPlan
+            localStorage.setItem("solfarm_user", JSON.stringify(user))
+          }
+        } else if (tries >= 20) {
+          // para de checar após ~2min
+          clearInterval(interval)
+          setPolling(false)
+        }
+      } catch {
+        clearInterval(interval)
+        setPolling(false)
+      }
+    }, 6000)
+  }, [selectedPlan])
+
+  // ── inicia checkout ──────────────────────────────────────────
+  async function handleCheckout(plan: "CAMPO" | "FAZENDA") {
+    setSelectedPlan(plan)
+    setError(null)
+    setCheckout(null)
+    setPaymentStatus(null)
+    setLoading(true)
+    try {
+      const result = await paymentService.checkout({
+        plan,
+        billingType: billing,
+        cpfCnpj: cpfCnpj.replace(/\D/g, "") || undefined,
+      })
+      setCheckout(result)
+      if (billing === "PIX") {
+        pollStatus(result.payment.id)
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error ?? "Erro ao gerar cobrança. Tente novamente.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleCopy(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  function handleClose() {
+    setCheckout(null)
+    setSelectedPlan(null)
+    setPaymentStatus(null)
+    setError(null)
+  }
+
+  // ── formatação CPF/CNPJ ──────────────────────────────────────
+  function formatDoc(v: string) {
+    const digits = v.replace(/\D/g, "").slice(0, 14)
+    if (digits.length <= 11) {
+      return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+    }
+    return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
+  }
+
+  const isPaid = paymentStatus === "CONFIRMED"
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: "var(--background)" }}>
+      <div className="max-w-5xl mx-auto px-4 py-10">
+
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-black text-gray-900 mb-2">Escolha seu plano</h1>
+          <p className="text-stone-500 text-base">
+            Desbloqueie o potencial completo da sua fazenda com tecnologia de satélite e IA
+          </p>
+          {currentPlan !== "FREE" && (
+            <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              Plano atual: <strong>{currentPlan}</strong>
+            </div>
+          )}
+        </div>
+
+        {/* Toggle billing */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex bg-white rounded-xl border border-stone-200 p-1 gap-1">
+            {(["PIX", "BOLETO"] as BillingType[]).map((b) => (
+              <button
+                key={b}
+                onClick={() => setBilling(b)}
+                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  billing === b
+                    ? "bg-green-600 text-white shadow"
+                    : "text-stone-500 hover:text-stone-700"
+                }`}
+              >
+                {b === "PIX" ? "⚡ PIX" : "📄 Boleto"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CPF/CNPJ (opcional mas recomendado) */}
+        <div className="flex justify-center mb-8">
+          <div className="w-full max-w-xs">
+            <label className="block text-xs font-semibold text-stone-500 mb-1 text-center uppercase tracking-wide">
+              CPF ou CNPJ (opcional)
+            </label>
+            <input
+              type="text"
+              value={cpfCnpj}
+              onChange={(e) => setCpfCnpj(formatDoc(e.target.value))}
+              placeholder="000.000.000-00"
+              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+          </div>
+        </div>
+
+        {/* Cards de planos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          {plans.map((plan) => {
+            const id = plan.id as PlanId
+            const isCurrent = id === currentPlan
+            const isFree = id === "FREE"
+
+            return (
+              <div
+                key={plan.id}
+                className={`relative bg-white rounded-2xl border-2 p-6 flex flex-col shadow-sm transition-all hover:shadow-md ${PLAN_COLORS[id]}`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="bg-amber-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow">
+                      MAIS POPULAR
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center">
+                    {PLAN_ICONS[id]}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-gray-900">{plan.name}</h2>
+                    {isCurrent && (
+                      <span className="text-xs text-green-600 font-semibold">✓ Plano atual</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mb-5">
+                  {plan.price === 0 ? (
+                    <span className="text-3xl font-black text-gray-900">Grátis</span>
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-semibold text-stone-400">R$</span>
+                      <span className="text-4xl font-black text-gray-900">{plan.price}</span>
+                      <span className="text-stone-400 text-sm">/{plan.period}</span>
+                    </div>
+                  )}
+                </div>
+
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {plan.features.map((f: string) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-stone-600">
+                      <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  disabled={isFree || isCurrent || loading}
+                  onClick={() => !isFree && !isCurrent && handleCheckout(id as "CAMPO" | "FAZENDA")}
+                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${PLAN_BTN[id]} ${
+                    (isFree || isCurrent) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  }`}
+                >
+                  {loading && selectedPlan === id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isCurrent ? (
+                    "Plano atual"
+                  ) : isFree ? (
+                    "Gratuito sempre"
+                  ) : (
+                    <>
+                      Assinar {plan.name}
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Erro */}
+        {error && (
+          <div className="max-w-lg mx-auto mb-6 flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            {error}
+          </div>
+        )}
+
+        {/* Modal de checkout */}
+        {checkout && !isPaid && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
+
+              {/* header */}
+              <div className="bg-gradient-to-r from-green-700 to-green-600 px-6 py-5 text-white">
+                <button
+                  onClick={handleClose}
+                  className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-white/20 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <h2 className="text-xl font-black mb-1">
+                  {billing === "PIX" ? "⚡ Pague com PIX" : "📄 Boleto Bancário"}
+                </h2>
+                <p className="text-green-100 text-sm">
+                  Plano {checkout.plan.nome} — <strong>R$ {checkout.payment.value.toFixed(2)}</strong>
+                </p>
+              </div>
+
+              <div className="p-6">
+                {billing === "PIX" && checkout.payment.pixQrCode ? (
+                  <>
+                    {/* QR Code */}
+                    <div className="flex flex-col items-center mb-5">
+                      <div className="p-3 bg-white border-2 border-green-200 rounded-xl shadow-inner mb-3">
+                        <img
+                          src={`data:image/png;base64,${checkout.payment.pixQrCode.encodedImage}`}
+                          alt="QR Code PIX"
+                          className="w-48 h-48 object-contain"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-stone-500">
+                        {polling && <RefreshCw className="w-3 h-3 animate-spin" />}
+                        {polling ? "Aguardando confirmação..." : "QR Code gerado"}
+                      </div>
+                    </div>
+
+                    {/* Copia e Cola */}
+                    <div className="mb-4">
+                      <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">
+                        PIX Copia e Cola
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={checkout.payment.pixQrCode.payload}
+                          className="flex-1 px-3 py-2 rounded-xl border border-stone-200 text-xs bg-stone-50 font-mono overflow-hidden text-ellipsis"
+                        />
+                        <button
+                          onClick={() => handleCopy(checkout.payment.pixQrCode!.payload)}
+                          className={`px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all ${
+                            copied
+                              ? "bg-green-100 text-green-700"
+                              : "bg-stone-100 text-stone-700 hover:bg-stone-200"
+                          }`}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          {copied ? "Copiado!" : "Copiar"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
+                      <strong>Vence em:</strong>{" "}
+                      {new Date(checkout.payment.pixQrCode.expirationDate).toLocaleString("pt-BR")}
+                      <br />
+                      Após o pagamento, seu plano será ativado automaticamente.
+                    </div>
+                  </>
+                ) : billing === "BOLETO" ? (
+                  <>
+                    <div className="flex flex-col items-center gap-4 py-4">
+                      <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center">
+                        <FileText className="w-10 h-10 text-blue-500" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-gray-900 mb-1">Boleto gerado com sucesso!</p>
+                        <p className="text-sm text-stone-500">
+                          Vencimento: {new Date(checkout.payment.dueDate).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <a
+                        href={checkout.payment.bankSlipUrl ?? checkout.payment.invoiceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm text-center hover:bg-blue-700 transition"
+                      >
+                        Visualizar / Imprimir Boleto
+                      </a>
+                    </div>
+                    <div className="bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-xs text-stone-600">
+                      O boleto pode levar até 3 dias úteis para compensar. Seu plano será ativado após a confirmação.
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-8 text-center text-stone-400">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" />
+                    Gerando cobrança...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de sucesso */}
+        {isPaid && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
+                <CheckCircle2 className="w-10 h-10 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2">Pagamento confirmado! 🎉</h2>
+              <p className="text-stone-500 mb-6">
+                Seu plano <strong>{checkout?.plan.nome}</strong> foi ativado. Bem-vindo ao SolFarm Pro!
+              </p>
+              <button
+                onClick={() => {
+                  handleClose()
+                  window.location.href = "/dashboard"
+                }}
+                className="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition"
+              >
+                Ir para o dashboard
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Rodapé de segurança */}
+        <div className="flex flex-wrap justify-center gap-6 text-xs text-stone-400 mt-4">
+          <span>🔒 Pagamentos seguros via Asaas</span>
+          <span>📄 Nota fiscal automática</span>
+          <span>↩️ Cancele quando quiser</span>
+          <span>🇧🇷 PIX instantâneo</span>
+        </div>
+      </div>
+    </div>
+  )
+}
