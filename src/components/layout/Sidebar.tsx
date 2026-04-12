@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Map, Satellite, BarChart3,
-  ShoppingCart, Users, User, LogOut, Leaf,
+  ShoppingCart, Users, User, LogOut, Leaf, TrendingUp,
 } from "lucide-react"
 import { authService } from "@/services/auth.service"
 import { useRouter } from "next/navigation"
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/dashboard/areas", label: "Minhas Áreas", icon: Map },
   { href: "/dashboard/satellite", label: "Satélite", icon: Satellite },
   { href: "/dashboard/diagnostics", label: "Diagnósticos", icon: BarChart3 },
+  { href: "/dashboard/financeiro", label: "Fluxo de Caixa", icon: TrendingUp },
   { href: "/dashboard/marketplace", label: "Marketplace", icon: ShoppingCart },
   { href: "/dashboard/community", label: "Comunidade", icon: Users },
   { href: "/dashboard/profile", label: "Perfil", icon: User },
