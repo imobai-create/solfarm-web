@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { api } from "@/services/api"
 import { authService } from "@/services/auth.service"
 import { formatDate } from "@/lib/utils"
-import { User, Mail, Phone, MapPin, Shield, Bell, CreditCard, LogOut, AlertCircle, CheckCircle2, Zap } from "lucide-react"
+import { User, Mail, Phone, MapPin, Shield, Bell, LogOut, AlertCircle, CheckCircle2, Zap, Wallet, ExternalLink, Loader2 } from "lucide-react"
 
 const PLAN_LIMITS: Record<string, any> = {
   FREE:       { areas: 1,   diagnostics: 3,   name: "Grátis",    color: "text-gray-600",   bg: "bg-gray-100" },
@@ -28,6 +28,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [form, setForm] = useState({ name: "", phone: "", state: "" })
+  const [wallet, setWallet] = useState("")
+  const [walletSaving, setWalletSaving] = useState(false)
+  const [walletMsg, setWalletMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   useEffect(() => {
     const stored = authService.getStoredUser()
@@ -54,6 +57,26 @@ export default function ProfilePage() {
       setEditing(false)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function saveWallet() {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+      setWalletMsg({ type: "error", text: "Endereço inválido. Deve começar com 0x e ter 42 caracteres." })
+      return
+    }
+    setWalletSaving(true)
+    setWalletMsg(null)
+    try {
+      await api.patch("/auth/wallet", { walletAddress: wallet })
+      const updated = { ...user, walletAddress: wallet }
+      localStorage.setItem("solfarm_user", JSON.stringify(updated))
+      setUser(updated)
+      setWalletMsg({ type: "success", text: "Carteira registrada! Seus FARMCOINs serão enviados para este endereço." })
+    } catch (err: any) {
+      setWalletMsg({ type: "error", text: err?.response?.data?.error ?? "Erro ao salvar carteira." })
+    } finally {
+      setWalletSaving(false)
     }
   }
 
@@ -244,6 +267,87 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Carteira FARMCOIN */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-green-600" />
+                  Carteira FARMCOIN (Polygon)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Sua carteira recebe os FARMCOINs emitidos pela sua produção diretamente na blockchain Polygon.
+                </p>
+
+                {walletMsg && (
+                  <div className={`flex items-start gap-2 px-4 py-3 rounded-xl text-sm border ${
+                    walletMsg.type === "success"
+                      ? "bg-green-50 text-green-700 border-green-100"
+                      : "bg-red-50 text-red-600 border-red-100"
+                  }`}>
+                    {walletMsg.type === "success"
+                      ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                      : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+                    {walletMsg.text}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Endereço da carteira
+                  </label>
+                  <input
+                    type="text"
+                    value={wallet}
+                    onChange={e => setWallet(e.target.value)}
+                    placeholder="0x..."
+                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 text-gray-900"
+                  />
+                  <p className="text-xs text-gray-400">
+                    Começa com 0x, 42 caracteres (ex: 0xAb12...cD34)
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <a
+                    href="https://metamask.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-green-600 hover:underline flex items-center gap-1"
+                  >
+                    Não tem carteira? Crie grátis no MetaMask
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <button
+                    onClick={saveWallet}
+                    disabled={walletSaving || !wallet}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50 transition-colors"
+                  >
+                    {walletSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</> : "Salvar Carteira"}
+                  </button>
+                </div>
+
+                {user?.walletAddress && (
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-green-700 font-semibold">Carteira registrada</p>
+                      <p className="text-xs font-mono text-green-600 truncate">{user.walletAddress}</p>
+                    </div>
+                    <a
+                      href={`https://polygonscan.com/address/${user.walletAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto shrink-0"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-green-500 hover:text-green-700" />
+                    </a>
                   </div>
                 )}
               </CardContent>

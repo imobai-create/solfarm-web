@@ -5,7 +5,7 @@ import { api, getApiError } from "@/services/api"
 import { authService } from "@/services/auth.service"
 import {
   Users, MapPin, BarChart3, DollarSign, TrendingUp, Activity,
-  Shield, ExternalLink, AlertCircle, Loader2,
+  Shield, ExternalLink, AlertCircle, Loader2, Lock, Unlock, ChevronDown,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -138,6 +138,8 @@ export default function AdminPage() {
   const [plans, setPlans] = useState<PlanStat[]>([])
   const [users, setUsers] = useState<AdminUser[]>([])
   const [farmcoin, setFarmcoin] = useState<FarmcoinTx[]>([])
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [planEdit, setPlanEdit] = useState<{ id: string; value: string } | null>(null)
 
   useEffect(() => {
     if (user?.role !== "ADMIN") return
@@ -196,6 +198,25 @@ export default function AdminPage() {
         <p className="text-red-600 font-medium">{error}</p>
       </div>
     )
+  }
+
+  async function handleChangePlan(userId: string, plan: string) {
+    setActionLoading(`plan-${userId}`)
+    try {
+      await api.patch(`/admin/users/${userId}/plan`, { plan })
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, plan: plan as AdminUser["plan"] } : u))
+      setPlanEdit(null)
+    } catch { /* silently fail */ }
+    finally { setActionLoading(null) }
+  }
+
+  async function handleToggleBlock(userId: string, blocked: boolean) {
+    setActionLoading(`block-${userId}`)
+    try {
+      await api.patch(`/admin/users/${userId}/block`, { blocked })
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isVerified: !blocked } : u))
+    } catch { /* silently fail */ }
+    finally { setActionLoading(null) }
   }
 
   const planPrices: Record<string, number> = { FREE: 0, CAMPO: 49, FAZENDA: 149 }
@@ -286,7 +307,7 @@ export default function AdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  {["Nome / Email", "Plano", "Localização", "Diagnóst.", "Áreas", "Cadastro", ""].map((h) => (
+                  {["Nome / Email", "Plano", "Localização", "Diagnóst.", "Áreas", "Cadastro", "Ações"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
                       {h}
                     </th>
@@ -313,9 +334,53 @@ export default function AdminPage() {
                     <td className="px-4 py-3 text-center font-medium text-gray-700">{u._count.areas}</td>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{fmtDate(u.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <button className="text-xs font-semibold text-green-600 hover:text-green-800 hover:underline transition-colors">
-                        Ver
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Mudar Plano */}
+                        {planEdit?.id === u.id ? (
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={planEdit.value}
+                              onChange={e => setPlanEdit({ id: u.id, value: e.target.value })}
+                              className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                            >
+                              {["FREE", "CAMPO", "FAZENDA"].map(p => <option key={p}>{p}</option>)}
+                            </select>
+                            <button
+                              onClick={() => handleChangePlan(u.id, planEdit.value)}
+                              disabled={actionLoading === `plan-${u.id}`}
+                              className="text-xs bg-green-600 text-white px-2 py-1 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center gap-1"
+                            >
+                              {actionLoading === `plan-${u.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : "OK"}
+                            </button>
+                            <button onClick={() => setPlanEdit(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1">✕</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setPlanEdit({ id: u.id, value: u.plan })}
+                            className="text-xs flex items-center gap-1 text-gray-500 hover:text-green-700 border border-gray-200 hover:border-green-400 px-2 py-1 rounded-lg transition-colors"
+                          >
+                            Plano <ChevronDown className="w-3 h-3" />
+                          </button>
+                        )}
+                        {/* Bloquear / Desbloquear */}
+                        <button
+                          onClick={() => handleToggleBlock(u.id, u.isVerified)}
+                          disabled={actionLoading === `block-${u.id}`}
+                          className={`text-xs flex items-center gap-1 px-2 py-1 rounded-lg border font-semibold transition-colors disabled:opacity-50 ${
+                            u.isVerified
+                              ? "text-red-500 border-red-200 hover:bg-red-50"
+                              : "text-green-600 border-green-200 hover:bg-green-50"
+                          }`}
+                        >
+                          {actionLoading === `block-${u.id}` ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : u.isVerified ? (
+                            <><Lock className="w-3 h-3" /> Bloquear</>
+                          ) : (
+                            <><Unlock className="w-3 h-3" /> Liberar</>
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
