@@ -267,7 +267,14 @@ export default function LandingPage() {
             <span className="text-gray-600 ml-3 text-sm">solfarm.com.br</span>
           </div>
           <div className="flex gap-6 text-sm">
-            {["Termos de Uso","Privacidade","Contato","API"].map(t => <a key={t} href="#" className="hover:text-white transition-colors">{t}</a>)}
+            {[
+              { label: "Termos de Uso", href: "/termos" },
+              { label: "Privacidade",   href: "/privacidade" },
+              { label: "Contato",       href: "/contato" },
+              { label: "API",           href: "/api-docs" },
+            ].map(({ label, href }) => (
+              <a key={label} href={href} className="hover:text-white transition-colors">{label}</a>
+            ))}
           </div>
           <p className="text-xs text-gray-600">© 2025 SolFarm · Feito com 🌱 para o produtor brasileiro</p>
         </div>
