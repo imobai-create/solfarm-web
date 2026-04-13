@@ -1,58 +1,91 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Header } from "@/components/layout/Header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { api } from "@/services/api"
-import { formatCurrency } from "@/lib/utils"
-import { Search, ShoppingCart, Star, Filter, Package, TrendingUp, Leaf, Droplets, Beaker } from "lucide-react"
+import { Search, ShoppingCart, Package, Beaker, Leaf, Droplets, Tractor, Wrench, Plus, X } from "lucide-react"
 
 const CATEGORIES = [
-  { id: "ALL", label: "Todos", icon: Package },
-  { id: "FERTILIZER", label: "Fertilizantes", icon: Beaker },
-  { id: "SEED", label: "Sementes", icon: Leaf },
-  { id: "PESTICIDE", label: "Defensivos", icon: Droplets },
-  { id: "MACHINE", label: "Máquinas", icon: TrendingUp },
+  { id: "ALL",          label: "Todos",         icon: Package },
+  { id: "FERTILIZANTE", label: "Fertilizantes", icon: Beaker },
+  { id: "SEMENTE",      label: "Sementes",      icon: Leaf },
+  { id: "DEFENSIVO",    label: "Defensivos",    icon: Droplets },
+  { id: "MAQUINA",      label: "Máquinas",      icon: Tractor },
+  { id: "FERRAMENTA",   label: "Ferramentas",   icon: Wrench },
+  { id: "SERVICO",      label: "Serviços",      icon: Package },
 ]
 
-// Mock products for demo
-const MOCK_PRODUCTS = [
-  { id: "1", name: "Ureia 45%", description: "Fertilizante nitrogenado de alta concentração, ideal para aplicação em cobertura", price: 189.90, unit: "sc 50kg", category: "FERTILIZER", rating: 4.8, reviews: 234, badge: "Mais vendido", stock: 500 },
-  { id: "2", name: "MAP Monoamônio Fosfato", description: "Fertilizante fosfatado para plantio, fórmula 11-52-00", price: 245.00, unit: "sc 50kg", category: "FERTILIZER", rating: 4.7, reviews: 189, badge: null, stock: 320 },
-  { id: "3", name: "KCl Cloreto de Potássio", description: "Fonte de potássio concentrada para correção de solos com deficiência", price: 198.50, unit: "sc 50kg", category: "FERTILIZER", rating: 4.6, reviews: 156, badge: "VRA", stock: 410 },
-  { id: "4", name: "Semente de Soja TMG 7062", description: "Variedade de alta produtividade para Cerrado, RR (Roundup Ready)", price: 420.00, unit: "sc 40kg", category: "SEED", rating: 4.9, reviews: 312, badge: "Premium", stock: 150 },
-  { id: "5", name: "Semente de Milho DKB 390", description: "Híbrido simples de alta performance para safra de verão", price: 380.00, unit: "sc 60.000 sem.", category: "SEED", rating: 4.8, reviews: 267, badge: null, stock: 89 },
-  { id: "6", name: "Glifosato 480 g/L", description: "Herbicida sistêmico de amplo espectro, formulação concentrado solúvel", price: 62.90, unit: "L", category: "PESTICIDE", rating: 4.5, reviews: 445, badge: "Oferta", stock: 2000 },
-  { id: "7", name: "Azoxistrobina + Ciproconazol", description: "Fungicida para controle de ferrugem asiática e outras doenças foliares", price: 89.90, unit: "L", category: "PESTICIDE", rating: 4.7, reviews: 198, badge: null, stock: 340 },
-  { id: "8", name: "Drone Agro DJI Agras T40", description: "Drone agrícola para pulverização de precisão, 40L de capacidade", price: 89990.00, unit: "un", category: "MACHINE", rating: 4.9, reviews: 45, badge: "Premium", stock: 8 },
-]
+const CAT_EMOJI: Record<string, string> = {
+  FERTILIZANTE: "🧪", SEMENTE: "🌱", DEFENSIVO: "💧",
+  MAQUINA: "🚜", IMPLEMENTO: "⚙️", FERRAMENTA: "🔧",
+  IRRIGACAO: "💦", SERVICO: "🤝", INOCULANTE: "🦠", OUTRO: "📦",
+}
+
+function fmt(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+}
+
+type Product = {
+  id: string; name: string; description?: string; category: string
+  price: number; unit: string; stock: number; brand?: string
+  state?: string; city?: string; isFeatured: boolean; images: string[]
+}
+
+const EMPTY_FORM = { name: "", description: "", category: "FERTILIZANTE", price: "", unit: "sc 50kg", stock: "", brand: "", state: "", city: "" }
 
 export default function MarketplacePage() {
-  const [products, setProducts] = useState(MOCK_PRODUCTS)
-  const [search, setSearch] = useState("")
-  const [category, setCategory] = useState("ALL")
-  const [cart, setCart] = useState<string[]>([])
+  const [products, setProducts]   = useState<Product[]>([])
+  const [loading, setLoading]     = useState(true)
+  const [search, setSearch]       = useState("")
+  const [category, setCategory]   = useState("ALL")
+  const [cart, setCart]           = useState<string[]>([])
+  const [showNew, setShowNew]     = useState(false)
+  const [form, setForm]           = useState(EMPTY_FORM)
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState("")
 
-  const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.description.toLowerCase().includes(search.toLowerCase())
-    const matchCat = category === "ALL" || p.category === category
-    return matchSearch && matchCat
-  })
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params: any = { limit: 50 }
+      if (category !== "ALL") params.category = category
+      if (search)             params.search   = search
+      const { data } = await api.get("/marketplace/products", { params })
+      setProducts(data.products ?? [])
+    } catch {
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
+  }, [category, search])
+
+  useEffect(() => { load() }, [load])
 
   function addToCart(id: string) {
     setCart(c => [...c, id])
     setTimeout(() => setCart(c => c.filter(i => i !== id)), 2000)
   }
 
-  function badgeVariant(badge: string | null) {
-    if (!badge) return null
-    if (badge === "Oferta") return "warning"
-    if (badge === "Premium") return "info"
-    if (badge === "VRA") return "secondary"
-    return "default"
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true); setError("")
+    try {
+      await api.post("/marketplace/products", {
+        ...form,
+        price: Number(form.price),
+        stock: Number(form.stock),
+      })
+      setForm(EMPTY_FORM)
+      setShowNew(false)
+      load()
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? "Erro ao criar produto")
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -65,7 +98,10 @@ export default function MarketplacePage() {
             <h1 className="text-2xl font-black text-gray-900">Marketplace Agrícola</h1>
             <p className="text-gray-500 text-sm mt-0.5">Insumos, sementes e máquinas para sua lavoura</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="gap-2" onClick={() => setShowNew(true)}>
+              <Plus className="w-4 h-4" /> Anunciar produto
+            </Button>
             <div className="relative">
               {cart.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-green-600 text-white text-xs flex items-center justify-center font-bold">
@@ -78,6 +114,81 @@ export default function MarketplacePage() {
             </div>
           </div>
         </div>
+
+        {/* Modal novo produto */}
+        {showNew && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-black text-gray-900">Anunciar produto</h2>
+                <button onClick={() => setShowNew(false)}><X className="w-5 h-5 text-gray-400" /></button>
+              </div>
+              <form onSubmit={handleCreate} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Nome do produto *</label>
+                    <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Ex: Ureia 45% N" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Categoria *</label>
+                    <select required value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                      {["FERTILIZANTE","DEFENSIVO","SEMENTE","INOCULANTE","MAQUINA","IMPLEMENTO","FERRAMENTA","IRRIGACAO","SERVICO","OUTRO"].map(c => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Unidade *</label>
+                    <input required value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="sc 50kg / L / un" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Preço (R$) *</label>
+                    <input required type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="189.90" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Estoque (qtd)</label>
+                    <input type="number" min="0" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="100" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Marca</label>
+                    <input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Marca do produto" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Estado (UF)</label>
+                    <input value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))}
+                      className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="MG" maxLength={2} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Descrição</label>
+                    <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                      placeholder="Descreva o produto..." />
+                  </div>
+                </div>
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setShowNew(false)}>Cancelar</Button>
+                  <Button type="submit" className="flex-1" disabled={saving}>
+                    {saving ? "Publicando..." : "Publicar anúncio"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative mb-5">
@@ -102,84 +213,67 @@ export default function MarketplacePage() {
                   : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
               }`}
             >
-              <Icon className="w-4 h-4" />
-              {label}
+              <Icon className="w-4 h-4" /> {label}
             </button>
           ))}
         </div>
 
-        {/* Products grid */}
-        {filtered.length === 0 ? (
+        {/* Products */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : products.length === 0 ? (
           <div className="text-center py-20">
             <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="font-bold text-gray-900 mb-2">Nenhum produto encontrado</p>
-            <p className="text-sm text-gray-500">Tente outros termos de busca</p>
+            <p className="text-sm text-gray-500 mb-6">Seja o primeiro a anunciar nesta categoria!</p>
+            <Button onClick={() => setShowNew(true)} className="gap-2">
+              <Plus className="w-4 h-4" /> Anunciar produto
+            </Button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-            {filtered.map(product => {
+            {products.map(product => {
               const inCart = cart.includes(product.id)
-              const bVariant = badgeVariant(product.badge)
               return (
                 <Card key={product.id} className="hover:shadow-lg transition-all">
                   <CardContent className="p-0">
-                    {/* Image placeholder */}
                     <div className="h-40 bg-gradient-to-br from-green-50 to-emerald-100 rounded-t-2xl flex items-center justify-center relative">
-                      <span className="text-5xl">
-                        {product.category === "FERTILIZER" ? "🧪" :
-                         product.category === "SEED" ? "🌱" :
-                         product.category === "PESTICIDE" ? "💧" : "🚜"}
-                      </span>
-                      {product.badge && bVariant && (
+                      <span className="text-5xl">{CAT_EMOJI[product.category] ?? "📦"}</span>
+                      {product.isFeatured && (
                         <div className="absolute top-3 left-3">
-                          <Badge variant={bVariant as any}>{product.badge}</Badge>
+                          <Badge variant="default">Destaque</Badge>
+                        </div>
+                      )}
+                      {product.state && (
+                        <div className="absolute top-3 right-3 bg-white/80 rounded-full px-2 py-0.5 text-xs font-bold text-gray-600">
+                          📍 {product.state}
                         </div>
                       )}
                     </div>
-
                     <div className="p-4">
+                      <p className="text-xs text-gray-400 font-medium mb-1">{product.category}{product.brand ? ` · ${product.brand}` : ""}</p>
                       <h3 className="font-bold text-gray-900 mb-1">{product.name}</h3>
-                      <p className="text-xs text-gray-500 mb-3 line-clamp-2">{product.description}</p>
-
-                      {/* Rating */}
-                      <div className="flex items-center gap-1.5 mb-3">
-                        <div className="flex gap-0.5">
-                          {[1,2,3,4,5].map(s => (
-                            <Star
-                              key={s}
-                              className="w-3 h-3"
-                              fill={s <= Math.round(product.rating) ? "#f59e0b" : "none"}
-                              stroke={s <= Math.round(product.rating) ? "#f59e0b" : "#d1d5db"}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-500">{product.rating} ({product.reviews})</span>
-                      </div>
-
-                      {/* Price */}
+                      {product.description && (
+                        <p className="text-xs text-gray-500 mb-3 line-clamp-2">{product.description}</p>
+                      )}
                       <div className="flex items-end justify-between mb-4">
                         <div>
-                          <p className="text-xl font-black text-gray-900">
-                            {formatCurrency(product.price)}
-                          </p>
+                          <p className="text-xl font-black text-gray-900">{fmt(product.price)}</p>
                           <p className="text-xs text-gray-400">por {product.unit}</p>
                         </div>
-                        <p className="text-xs text-green-600 font-semibold">
+                        <p className={`text-xs font-semibold ${product.stock > 10 ? "text-green-600" : product.stock > 0 ? "text-amber-500" : "text-red-500"}`}>
                           {product.stock > 100 ? "Em estoque" : product.stock > 0 ? `${product.stock} restantes` : "Esgotado"}
                         </p>
                       </div>
-
                       <Button
                         className="w-full gap-2"
                         variant={inCart ? "secondary" : "default"}
                         onClick={() => addToCart(product.id)}
                         disabled={product.stock === 0}
                       >
-                        {inCart ? (
-                          <><CheckIcon /> Adicionado!</>
-                        ) : (
-                          <><ShoppingCart className="w-4 h-4" /> Adicionar ao carrinho</>
-                        )}
+                        {inCart ? "✓ Adicionado!" : <><ShoppingCart className="w-4 h-4" /> Adicionar ao carrinho</>}
                       </Button>
                     </div>
                   </CardContent>
@@ -190,13 +284,5 @@ export default function MarketplacePage() {
         )}
       </div>
     </div>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    </svg>
   )
 }

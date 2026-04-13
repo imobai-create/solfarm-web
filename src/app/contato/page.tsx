@@ -4,17 +4,34 @@ import Link from "next/link"
 import { useState } from "react"
 import { Leaf, Mail, Phone, Globe, Clock, CheckCircle2, Send } from "lucide-react"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://solfarm-api-production.up.railway.app"
+
 export default function ContatoPage() {
   const [form, setForm] = useState({ nome: "", email: "", assunto: "", mensagem: "" })
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1200))
-    setSent(true)
-    setLoading(false)
+    setError("")
+    try {
+      const res = await fetch(`${API_URL}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message ?? "Erro ao enviar mensagem")
+      }
+      setSent(true)
+    } catch (err: any) {
+      setError(err.message ?? "Erro ao enviar. Tente novamente.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -93,6 +110,9 @@ export default function ContatoPage() {
                     rows={6} placeholder="Descreva sua dúvida ou mensagem..."
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 resize-none" />
                 </div>
+                {error && (
+                  <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>
+                )}
                 <button type="submit" disabled={loading}
                   className="flex items-center justify-center gap-2 w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-60 text-sm">
                   {loading ? (
