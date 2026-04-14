@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 
 // ── tipos locais ──────────────────────────────────────────────
-type BillingType = "PIX" | "BOLETO"
+type BillingType = "PIX" | "BOLETO" | "CREDIT_CARD" | "UNDEFINED"
 type PlanId = "FREE" | "CAMPO" | "FAZENDA"
 
 const PLAN_ICONS: Record<PlanId, React.ReactNode> = {
@@ -92,8 +92,14 @@ export default function UpgradePage() {
         plan,
         billingType: billing,
         cpfCnpj: cpfCnpj.replace(/\D/g, "") || undefined,
+        recurrent: true,
       })
       setCheckout(result)
+      // Cartão ou link universal → redireciona para página segura do Asaas
+      if ((billing === "CREDIT_CARD" || billing === "UNDEFINED") && result.payment?.invoiceUrl) {
+        window.open(result.payment.invoiceUrl, "_blank")
+        return
+      }
       if (billing === "PIX") {
         pollStatus(result.payment.id)
       }
@@ -149,21 +155,36 @@ export default function UpgradePage() {
 
         {/* Toggle billing */}
         <div className="flex justify-center mb-8">
-          <div className="inline-flex bg-white rounded-xl border border-stone-200 p-1 gap-1">
-            {(["PIX", "BOLETO"] as BillingType[]).map((b) => (
+          <div className="inline-flex bg-white rounded-xl border border-stone-200 p-1 gap-1 flex-wrap justify-center">
+            {([
+              { id: "PIX",         label: "⚡ PIX" },
+              { id: "CREDIT_CARD", label: "💳 Cartão" },
+              { id: "BOLETO",      label: "📄 Boleto" },
+              { id: "UNDEFINED",   label: "🔗 Link" },
+            ] as { id: BillingType; label: string }[]).map(({ id, label }) => (
               <button
-                key={b}
-                onClick={() => setBilling(b)}
-                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  billing === b
+                key={id}
+                onClick={() => setBilling(id)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  billing === id
                     ? "bg-green-600 text-white shadow"
                     : "text-stone-500 hover:text-stone-700"
                 }`}
               >
-                {b === "PIX" ? "⚡ PIX" : "📄 Boleto"}
+                {label}
               </button>
             ))}
           </div>
+          {billing === "CREDIT_CARD" && (
+            <p className="text-xs text-stone-500 text-center mt-2 w-full">
+              🔒 Dados do cartão inseridos diretamente na página segura do Asaas
+            </p>
+          )}
+          {billing === "UNDEFINED" && (
+            <p className="text-xs text-stone-500 text-center mt-2 w-full">
+              🔗 Você escolhe o método na hora do pagamento (PIX, cartão ou boleto)
+            </p>
+          )}
         </div>
 
         {/* CPF/CNPJ (opcional mas recomendado) */}

@@ -50,12 +50,17 @@ export const paymentService = {
 
   async checkout(data: {
     plan: "CAMPO" | "FAZENDA"
-    billingType: "PIX" | "BOLETO"
+    billingType: "PIX" | "BOLETO" | "CREDIT_CARD" | "UNDEFINED"
     cpfCnpj?: string
     phone?: string
+    recurrent?: boolean
   }): Promise<CheckoutResult> {
-    const res = await api.post("/payments/checkout", data)
+    const res = await api.post("/payments/checkout", { recurrent: true, ...data })
     return res.data
+  },
+
+  async cancel(subscriptionId: string): Promise<void> {
+    await api.post("/payments/cancel", { subscriptionId })
   },
 
   async getStatus(paymentId: string): Promise<PaymentStatus> {
