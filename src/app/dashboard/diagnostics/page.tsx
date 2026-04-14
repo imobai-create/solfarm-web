@@ -7,7 +7,33 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { api } from "@/services/api"
 import { healthColor, healthBg, cultureEmoji, cultureLabel, formatDate } from "@/lib/utils"
+import { useLang } from "@/hooks/useLang"
 import { BarChart3, ArrowRight, Leaf, Droplets, TrendingUp, Search } from "lucide-react"
+
+const T = {
+  pt: {
+    title: "Diagnósticos",
+    headerTitle: "Diagnósticos",
+    analysisCount: (n: number) => `${n} análise${n !== 1 ? "s" : ""} realizadas`,
+    searchPlaceholder: "Buscar por área ou status...",
+    noResults: "Nenhum resultado",
+    noDiagnosticYet: "Nenhum diagnóstico ainda",
+    noResultsDesc: (search: string) => `Nenhum diagnóstico corresponde a "${search}"`,
+    noDiagnosticDesc: "Acesse uma área e inicie uma análise via satélite",
+    viewMyAreas: "Ver minhas áreas",
+  },
+  en: {
+    title: "Diagnostics",
+    headerTitle: "Diagnostics",
+    analysisCount: (n: number) => `${n} analysis${n !== 1 ? "es" : ""} performed`,
+    searchPlaceholder: "Search by area or status...",
+    noResults: "No results",
+    noDiagnosticYet: "No diagnostics yet",
+    noResultsDesc: (search: string) => `No diagnostic matches "${search}"`,
+    noDiagnosticDesc: "Go to an area and start a satellite analysis",
+    viewMyAreas: "View my areas",
+  },
+}
 
 function ndviColor(v: number): string {
   if (v >= 0.7) return "#16a34a"
@@ -18,6 +44,9 @@ function ndviColor(v: number): string {
 }
 
 export default function DiagnosticsPage() {
+  const { lang } = useLang()
+  const t = T[lang]
+
   const [diagnostics, setDiagnostics] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -36,13 +65,13 @@ export default function DiagnosticsPage() {
 
   return (
     <div className="min-h-screen">
-      <Header title="Diagnósticos" />
+      <Header title={t.headerTitle} />
 
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">Diagnósticos</h1>
-            <p className="text-gray-500 text-sm mt-0.5">{diagnostics.length} análise{diagnostics.length !== 1 ? "s" : ""} realizadas</p>
+            <h1 className="text-2xl font-black text-gray-900">{t.title}</h1>
+            <p className="text-gray-500 text-sm mt-0.5">{t.analysisCount(diagnostics.length)}</p>
           </div>
         </div>
 
@@ -52,7 +81,7 @@ export default function DiagnosticsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por área ou status..."
+            placeholder={t.searchPlaceholder}
             className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-900"
           />
         </div>
@@ -66,14 +95,14 @@ export default function DiagnosticsPage() {
             <CardContent className="p-16 text-center">
               <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h3 className="font-bold text-gray-900 mb-2">
-                {search ? "Nenhum resultado" : "Nenhum diagnóstico ainda"}
+                {search ? t.noResults : t.noDiagnosticYet}
               </h3>
               <p className="text-sm text-gray-500 mb-6">
-                {search ? `Nenhum diagnóstico corresponde a "${search}"` : "Acesse uma área e inicie uma análise via satélite"}
+                {search ? t.noResultsDesc(search) : t.noDiagnosticDesc}
               </p>
               {!search && (
                 <Link href="/dashboard/areas">
-                  <Button className="gap-2">Ver minhas áreas</Button>
+                  <Button className="gap-2">{t.viewMyAreas}</Button>
                 </Link>
               )}
             </CardContent>

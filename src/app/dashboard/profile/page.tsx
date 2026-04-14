@@ -9,7 +9,97 @@ import { Badge } from "@/components/ui/badge"
 import { api } from "@/services/api"
 import { authService } from "@/services/auth.service"
 import { formatDate } from "@/lib/utils"
+import { useLang } from "@/hooks/useLang"
 import { User, Mail, Phone, MapPin, Shield, Bell, LogOut, AlertCircle, CheckCircle2, Zap, Wallet, ExternalLink, Loader2 } from "lucide-react"
+
+const T = {
+  pt: {
+    pageTitle: "Perfil",
+    heading: "Minha Conta",
+    subtitle: "Gerencie seu perfil e assinatura",
+    profileSaved: "Perfil atualizado com sucesso!",
+    planLabel: "Plano",
+    producer: "🌱 Produtor Rural",
+    supplier: "🏪 Fornecedor",
+    planUsage: "Uso do plano",
+    registeredAreas: "Áreas cadastradas",
+    diagnosticsRun: "Diagnósticos realizados",
+    logout: "Sair da conta",
+    personalInfo: "Informações pessoais",
+    edit: "Editar",
+    cancel: "Cancelar",
+    save: "Salvar",
+    fieldName: "Nome completo",
+    fieldEmail: "E-mail",
+    fieldPhone: "WhatsApp",
+    fieldState: "Estado (UF)",
+    subscription: "Assinatura",
+    unlimitedAreas: "Áreas ilimitadas",
+    upToAreas: (n: number) => `Até ${n} área${n > 1 ? "s" : ""}`,
+    unlimitedDiagnostics: "Diagnósticos ilimitados",
+    diagnosticsPerMonth: (n: number) => `${n} diagnósticos/mês`,
+    upgradeBtn: "Fazer upgrade →",
+    walletTitle: "Carteira FARMCOIN (Polygon)",
+    walletDesc: "Sua carteira recebe os FARMCOINs emitidos pela sua produção diretamente na blockchain Polygon.",
+    walletAddress: "Endereço da carteira",
+    walletHint: "Começa com 0x, 42 caracteres (ex: 0xAb12...cD34)",
+    walletInvalid: "Endereço inválido. Deve começar com 0x e ter 42 caracteres.",
+    walletSuccess: "Carteira registrada! Seus FARMCOINs serão enviados para este endereço.",
+    walletError: "Erro ao salvar carteira.",
+    walletRegistered: "Carteira registrada",
+    noWallet: "Não tem carteira? Crie grátis no MetaMask",
+    saveWallet: "Salvar Carteira",
+    savingWallet: "Salvando...",
+    security: "Segurança",
+    changePassword: "Alterar senha",
+    changePasswordDesc: "Atualize sua senha de acesso",
+    notifications: "Notificações",
+    notificationsDesc: "Alertas de diagnóstico e comunidade",
+  },
+  en: {
+    pageTitle: "Profile",
+    heading: "My Account",
+    subtitle: "Manage your profile and subscription",
+    profileSaved: "Profile updated successfully!",
+    planLabel: "Plan",
+    producer: "🌱 Rural Producer",
+    supplier: "🏪 Supplier",
+    planUsage: "Plan usage",
+    registeredAreas: "Registered areas",
+    diagnosticsRun: "Diagnostics run",
+    logout: "Sign out",
+    personalInfo: "Personal information",
+    edit: "Edit",
+    cancel: "Cancel",
+    save: "Save",
+    fieldName: "Full name",
+    fieldEmail: "E-mail",
+    fieldPhone: "WhatsApp",
+    fieldState: "State (UF)",
+    subscription: "Subscription",
+    unlimitedAreas: "Unlimited areas",
+    upToAreas: (n: number) => `Up to ${n} area${n > 1 ? "s" : ""}`,
+    unlimitedDiagnostics: "Unlimited diagnostics",
+    diagnosticsPerMonth: (n: number) => `${n} diagnostics/month`,
+    upgradeBtn: "Upgrade →",
+    walletTitle: "FARMCOIN Wallet (Polygon)",
+    walletDesc: "Your wallet receives FARMCOINs issued by your production directly on the Polygon blockchain.",
+    walletAddress: "Wallet address",
+    walletHint: "Starts with 0x, 42 characters (e.g. 0xAb12...cD34)",
+    walletInvalid: "Invalid address. Must start with 0x and have 42 characters.",
+    walletSuccess: "Wallet registered! Your FARMCOINs will be sent to this address.",
+    walletError: "Failed to save wallet.",
+    walletRegistered: "Wallet registered",
+    noWallet: "No wallet? Create one free on MetaMask",
+    saveWallet: "Save Wallet",
+    savingWallet: "Saving...",
+    security: "Security",
+    changePassword: "Change password",
+    changePasswordDesc: "Update your access password",
+    notifications: "Notifications",
+    notificationsDesc: "Diagnostic and community alerts",
+  },
+}
 
 const PLAN_LIMITS: Record<string, any> = {
   FREE:       { areas: 1,   diagnostics: 3,   name: "Grátis",    color: "text-gray-600",   bg: "bg-gray-100" },
@@ -21,6 +111,8 @@ const PLAN_LIMITS: Record<string, any> = {
 }
 
 export default function ProfilePage() {
+  const { lang } = useLang()
+  const t = T[lang]
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState<any>(null)
@@ -45,7 +137,7 @@ export default function ProfilePage() {
   async function saveProfile() {
     setSaving(true)
     try {
-      const res = await api.patch("/auth/me", form)
+      await api.patch("/auth/me", form)
       const updated = { ...user, ...form }
       localStorage.setItem("solfarm_user", JSON.stringify(updated))
       setUser(updated)
@@ -53,7 +145,6 @@ export default function ProfilePage() {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch {
-      // silently fail for demo
       setEditing(false)
     } finally {
       setSaving(false)
@@ -62,7 +153,7 @@ export default function ProfilePage() {
 
   async function saveWallet() {
     if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
-      setWalletMsg({ type: "error", text: "Endereço inválido. Deve começar com 0x e ter 42 caracteres." })
+      setWalletMsg({ type: "error", text: t.walletInvalid })
       return
     }
     setWalletSaving(true)
@@ -72,9 +163,9 @@ export default function ProfilePage() {
       const updated = { ...user, walletAddress: wallet }
       localStorage.setItem("solfarm_user", JSON.stringify(updated))
       setUser(updated)
-      setWalletMsg({ type: "success", text: "Carteira registrada! Seus FARMCOINs serão enviados para este endereço." })
+      setWalletMsg({ type: "success", text: t.walletSuccess })
     } catch (err: any) {
-      setWalletMsg({ type: "error", text: err?.response?.data?.error ?? "Erro ao salvar carteira." })
+      setWalletMsg({ type: "error", text: err?.response?.data?.error ?? t.walletError })
     } finally {
       setWalletSaving(false)
     }
@@ -88,21 +179,33 @@ export default function ProfilePage() {
   if (!user) return null
 
   const plan = PLAN_LIMITS[user.plan ?? "FREE"]
-  const firstName = user.name?.split(" ")[0]
+
+  const fields = [
+    { icon: User,   label: t.fieldName,  key: "name",  value: user.name,  type: "text" },
+    { icon: Mail,   label: t.fieldEmail, key: "email", value: user.email, type: "email", readOnly: true },
+    { icon: Phone,  label: t.fieldPhone, key: "phone", value: user.phone, type: "tel" },
+    { icon: MapPin, label: t.fieldState, key: "state", value: user.state, type: "text" },
+  ]
+
+  const upgradePlans = [
+    { plan: "Starter", price: "R$49/mês", areas: 5,   diag: 20,  color: "blue" },
+    { plan: "Pro",     price: "R$149/mês", areas: 20,  diag: 100, color: "green" },
+    { plan: "Enterprise", price: "R$499/mês", areas: 999, diag: 999, color: "purple" },
+  ]
 
   return (
     <div className="min-h-screen">
-      <Header title="Perfil" />
+      <Header title={t.pageTitle} />
 
       <div className="p-8 max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-black text-gray-900">Minha Conta</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Gerencie seu perfil e assinatura</p>
+          <h1 className="text-2xl font-black text-gray-900">{t.heading}</h1>
+          <p className="text-gray-500 text-sm mt-0.5">{t.subtitle}</p>
         </div>
 
         {saved && (
           <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-3 rounded-xl mb-5 border border-green-100">
-            <CheckCircle2 className="w-4 h-4" /> Perfil atualizado com sucesso!
+            <CheckCircle2 className="w-4 h-4" /> {t.profileSaved}
           </div>
         )}
 
@@ -120,12 +223,12 @@ export default function ProfilePage() {
                 <div className="mt-3">
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold ${plan.bg} ${plan.color}`}>
                     <Zap className="w-3.5 h-3.5" />
-                    Plano {plan.name}
+                    {t.planLabel} {plan.name}
                   </span>
                 </div>
                 {user.role && (
                   <p className="text-xs text-gray-400 mt-2">
-                    {user.role === "PRODUCER" ? "🌱 Produtor Rural" : "🏪 Fornecedor"}
+                    {user.role === "PRODUCER" ? t.producer : t.supplier}
                   </p>
                 )}
               </CardContent>
@@ -133,11 +236,11 @@ export default function ProfilePage() {
 
             {/* Usage */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Uso do plano</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t.planUsage}</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-500">Áreas cadastradas</span>
+                    <span className="text-gray-500">{t.registeredAreas}</span>
                     <span className="font-bold text-gray-900">
                       {stats?.totalAreas ?? 0}/{plan.areas === 999 ? "∞" : plan.areas}
                     </span>
@@ -151,7 +254,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-gray-500">Diagnósticos realizados</span>
+                    <span className="text-gray-500">{t.diagnosticsRun}</span>
                     <span className="font-bold text-gray-900">
                       {stats?.diagnosticsRun ?? 0}/{plan.diagnostics === 999 ? "∞" : plan.diagnostics}
                     </span>
@@ -174,7 +277,7 @@ export default function ProfilePage() {
                   className="w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                   onClick={handleLogout}
                 >
-                  <LogOut className="w-4 h-4" /> Sair da conta
+                  <LogOut className="w-4 h-4" /> {t.logout}
                 </Button>
               </CardContent>
             </Card>
@@ -186,24 +289,19 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Informações pessoais</CardTitle>
+                  <CardTitle>{t.personalInfo}</CardTitle>
                   {!editing ? (
-                    <Button variant="outline" size="sm" onClick={() => setEditing(true)}>Editar</Button>
+                    <Button variant="outline" size="sm" onClick={() => setEditing(true)}>{t.edit}</Button>
                   ) : (
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancelar</Button>
-                      <Button size="sm" onClick={saveProfile} loading={saving}>Salvar</Button>
+                      <Button variant="outline" size="sm" onClick={() => setEditing(false)}>{t.cancel}</Button>
+                      <Button size="sm" onClick={saveProfile} loading={saving}>{t.save}</Button>
                     </div>
                   )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {[
-                  { icon: User, label: "Nome completo", key: "name", value: user.name, type: "text" },
-                  { icon: Mail, label: "E-mail", key: "email", value: user.email, type: "email", readOnly: true },
-                  { icon: Phone, label: "WhatsApp", key: "phone", value: user.phone, type: "tel" },
-                  { icon: MapPin, label: "Estado (UF)", key: "state", value: user.state, type: "text" },
-                ].map(({ icon: Icon, label, key, value, type, readOnly }) => (
+                {fields.map(({ icon: Icon, label, key, value, type, readOnly }) => (
                   <div key={key} className="flex items-center gap-4">
                     <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
                       <Icon className="w-4 h-4 text-gray-400" />
@@ -230,14 +328,14 @@ export default function ProfilePage() {
 
             {/* Plan */}
             <Card>
-              <CardHeader><CardTitle>Assinatura</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t.subscription}</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 mb-5">
                   <div>
-                    <p className="font-bold text-gray-900">Plano {plan.name}</p>
+                    <p className="font-bold text-gray-900">{t.planLabel} {plan.name}</p>
                     <p className="text-sm text-gray-500">
-                      {plan.areas === 999 ? "Áreas ilimitadas" : `Até ${plan.areas} área${plan.areas > 1 ? "s" : ""}`} ·{" "}
-                      {plan.diagnostics === 999 ? "Diagnósticos ilimitados" : `${plan.diagnostics} diagnósticos/mês`}
+                      {plan.areas === 999 ? t.unlimitedAreas : t.upToAreas(plan.areas)} ·{" "}
+                      {plan.diagnostics === 999 ? t.unlimitedDiagnostics : t.diagnosticsPerMonth(plan.diagnostics)}
                     </p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${plan.bg} ${plan.color}`}>
@@ -247,22 +345,18 @@ export default function ProfilePage() {
 
                 {user.plan === "FREE" && (
                   <div className="space-y-3">
-                    {[
-                      { plan: "Starter", price: "R$49/mês", areas: 5, diag: 20, color: "blue" },
-                      { plan: "Pro", price: "R$149/mês", areas: 20, diag: 100, color: "green" },
-                      { plan: "Enterprise", price: "R$499/mês", areas: 999, diag: 999, color: "purple" },
-                    ].map(p => (
+                    {upgradePlans.map(p => (
                       <div key={p.plan} className="flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all">
                         <div>
                           <p className={`font-bold text-${p.color}-700`}>{p.plan}</p>
                           <p className="text-xs text-gray-500">
-                            {p.areas === 999 ? "Áreas ilimitadas" : `${p.areas} áreas`} · {p.diag === 999 ? "diagnósticos ilimitados" : `${p.diag} diagnósticos`}
+                            {p.areas === 999 ? t.unlimitedAreas : `${p.areas} ${lang === "pt" ? "áreas" : "areas"}`} · {p.diag === 999 ? t.unlimitedDiagnostics : `${p.diag} ${lang === "pt" ? "diagnósticos" : "diagnostics"}`}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-gray-900 text-sm">{p.price}</p>
                           <button className="text-xs text-green-600 font-semibold hover:underline">
-                            Fazer upgrade →
+                            {t.upgradeBtn}
                           </button>
                         </div>
                       </div>
@@ -277,13 +371,11 @@ export default function ProfilePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-green-600" />
-                  Carteira FARMCOIN (Polygon)
+                  {t.walletTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-gray-500">
-                  Sua carteira recebe os FARMCOINs emitidos pela sua produção diretamente na blockchain Polygon.
-                </p>
+                <p className="text-sm text-gray-500">{t.walletDesc}</p>
 
                 {walletMsg && (
                   <div className={`flex items-start gap-2 px-4 py-3 rounded-xl text-sm border ${
@@ -300,7 +392,7 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Endereço da carteira
+                    {t.walletAddress}
                   </label>
                   <input
                     type="text"
@@ -309,9 +401,7 @@ export default function ProfilePage() {
                     placeholder="0x..."
                     className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 text-gray-900"
                   />
-                  <p className="text-xs text-gray-400">
-                    Começa com 0x, 42 caracteres (ex: 0xAb12...cD34)
-                  </p>
+                  <p className="text-xs text-gray-400">{t.walletHint}</p>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -321,7 +411,7 @@ export default function ProfilePage() {
                     rel="noopener noreferrer"
                     className="text-xs text-green-600 hover:underline flex items-center gap-1"
                   >
-                    Não tem carteira? Crie grátis no MetaMask
+                    {t.noWallet}
                     <ExternalLink className="w-3 h-3" />
                   </a>
                   <button
@@ -329,7 +419,7 @@ export default function ProfilePage() {
                     disabled={walletSaving || !wallet}
                     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-50 transition-colors"
                   >
-                    {walletSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</> : "Salvar Carteira"}
+                    {walletSaving ? <><Loader2 className="w-4 h-4 animate-spin" /> {t.savingWallet}</> : t.saveWallet}
                   </button>
                 </div>
 
@@ -337,7 +427,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
                     <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xs text-green-700 font-semibold">Carteira registrada</p>
+                      <p className="text-xs text-green-700 font-semibold">{t.walletRegistered}</p>
                       <p className="text-xs font-mono text-green-600 truncate">{user.walletAddress}</p>
                     </div>
                     <a
@@ -355,14 +445,14 @@ export default function ProfilePage() {
 
             {/* Security */}
             <Card>
-              <CardHeader><CardTitle>Segurança</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t.security}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
                   <div className="flex items-center gap-3">
                     <Shield className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Alterar senha</p>
-                      <p className="text-xs text-gray-400">Atualize sua senha de acesso</p>
+                      <p className="text-sm font-medium text-gray-700">{t.changePassword}</p>
+                      <p className="text-xs text-gray-400">{t.changePasswordDesc}</p>
                     </div>
                   </div>
                   <span className="text-xs text-green-600 font-semibold">→</span>
@@ -371,8 +461,8 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3">
                     <Bell className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-700">Notificações</p>
-                      <p className="text-xs text-gray-400">Alertas de diagnóstico e comunidade</p>
+                      <p className="text-sm font-medium text-gray-700">{t.notifications}</p>
+                      <p className="text-xs text-gray-400">{t.notificationsDesc}</p>
                     </div>
                   </div>
                   <span className="text-xs text-green-600 font-semibold">→</span>

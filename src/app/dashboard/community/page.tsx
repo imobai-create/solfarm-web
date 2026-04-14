@@ -5,36 +5,118 @@ import { Header } from "@/components/layout/Header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { api } from "@/services/api"
+import { useLang } from "@/hooks/useLang"
 import { Heart, MessageCircle, Share2, Plus, AlertTriangle, Users, TrendingUp, X, RefreshCw } from "lucide-react"
 
-const POST_TYPES = [
-  { id: "TODOS",     label: "Todos" },
-  { id: "ALERTA",   label: "🚨 Alertas" },
-  { id: "DICA",     label: "💡 Dicas" },
-  { id: "DUVIDA",   label: "❓ Perguntas" },
-  { id: "VENDA",    label: "🤝 Ofertas" },
-  { id: "RESULTADO",label: "📊 Resultados" },
-]
-
-function catConfig(cat: string) {
-  switch (cat) {
-    case "ALERTA":    return { color: "bg-red-50 text-red-700 border-red-200",     icon: "🚨", label: "Alerta" }
-    case "DICA":      return { color: "bg-green-50 text-green-700 border-green-200", icon: "💡", label: "Dica" }
-    case "DUVIDA":    return { color: "bg-blue-50 text-blue-700 border-blue-200",   icon: "❓", label: "Pergunta" }
-    case "VENDA":     return { color: "bg-amber-50 text-amber-700 border-amber-200", icon: "🤝", label: "Oferta" }
-    case "RESULTADO": return { color: "bg-purple-50 text-purple-700 border-purple-200", icon: "📊", label: "Resultado" }
-    default:          return { color: "bg-gray-50 text-gray-700 border-gray-200",   icon: "📝", label: "Post" }
-  }
-}
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "agora"
-  if (mins < 60) return `${mins}min atrás`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h atrás`
-  return `${Math.floor(hrs / 24)}d atrás`
+const T = {
+  pt: {
+    pageTitle: "Comunidade",
+    heading: "Rede de Produtores",
+    subtitle: "Compartilhe alertas, dicas e faça permutas",
+    newPost: "Nova publicação",
+    activeProducers: "Produtores ativos",
+    postsThisWeek: "Posts esta semana",
+    totalPosts: "Total de posts",
+    all: "Todos",
+    alerts: "🚨 Alertas",
+    tips: "💡 Dicas",
+    questions: "❓ Perguntas",
+    offers: "🤝 Ofertas",
+    results: "📊 Resultados",
+    newPostTitle: "Nova publicação",
+    categoryTip: "💡 Dica",
+    categoryAlert: "🚨 Alerta",
+    categoryQuestion: "❓ Pergunta",
+    categoryOffer: "🤝 Oferta",
+    categoryResult: "📊 Resultado",
+    titlePlaceholder: "Título (opcional)",
+    contentPlaceholder: "Escreva sua mensagem para a comunidade...",
+    cancel: "Cancelar",
+    publish: "Publicar",
+    publishing: "Publicando...",
+    noPostsTitle: "Nenhuma publicação ainda",
+    noPostsSubtitle: "Seja o primeiro a publicar na comunidade!",
+    createPost: "Criar publicação",
+    share: "Compartilhar",
+    activeAlertsTitle: "🌡️ Alertas Ativos",
+    trendingTipsTitle: "💡 Dicas em Alta",
+    catAlert: "Alerta",
+    catTip: "Dica",
+    catQuestion: "Pergunta",
+    catOffer: "Oferta",
+    catResult: "Resultado",
+    catPost: "Post",
+    timeNow: "agora",
+    timeMinAgo: (m: number) => `${m}min atrás`,
+    timeHoursAgo: (h: number) => `${h}h atrás`,
+    timeDaysAgo: (d: number) => `${d}d atrás`,
+    alerts_data: [
+      { region: "MT Norte", issue: "Ferrugem asiática" },
+      { region: "GO Sul", issue: "Seca prolongada" },
+      { region: "PR Oeste", issue: "Geada tardia" },
+    ],
+    tips_data: [
+      "Aplique inoculante separado do fungicida",
+      "Análise de solo antes da semeadura",
+      "Monitoramento semanal de doenças",
+      "VRA reduz custo em até 30%",
+    ],
+    publishError: "Erro ao publicar",
+  },
+  en: {
+    pageTitle: "Community",
+    heading: "Producer Network",
+    subtitle: "Share alerts, tips and make trades",
+    newPost: "New post",
+    activeProducers: "Active producers",
+    postsThisWeek: "Posts this week",
+    totalPosts: "Total posts",
+    all: "All",
+    alerts: "🚨 Alerts",
+    tips: "💡 Tips",
+    questions: "❓ Questions",
+    offers: "🤝 Offers",
+    results: "📊 Results",
+    newPostTitle: "New post",
+    categoryTip: "💡 Tip",
+    categoryAlert: "🚨 Alert",
+    categoryQuestion: "❓ Question",
+    categoryOffer: "🤝 Offer",
+    categoryResult: "📊 Result",
+    titlePlaceholder: "Title (optional)",
+    contentPlaceholder: "Write your message to the community...",
+    cancel: "Cancel",
+    publish: "Publish",
+    publishing: "Publishing...",
+    noPostsTitle: "No posts yet",
+    noPostsSubtitle: "Be the first to post in the community!",
+    createPost: "Create post",
+    share: "Share",
+    activeAlertsTitle: "🌡️ Active Alerts",
+    trendingTipsTitle: "💡 Trending Tips",
+    catAlert: "Alert",
+    catTip: "Tip",
+    catQuestion: "Question",
+    catOffer: "Offer",
+    catResult: "Result",
+    catPost: "Post",
+    timeNow: "just now",
+    timeMinAgo: (m: number) => `${m}min ago`,
+    timeHoursAgo: (h: number) => `${h}h ago`,
+    timeDaysAgo: (d: number) => `${d}d ago`,
+    alerts_data: [
+      { region: "MT North", issue: "Asian rust" },
+      { region: "GO South", issue: "Extended drought" },
+      { region: "PR West", issue: "Late frost" },
+    ],
+    tips_data: [
+      "Apply inoculant separately from fungicide",
+      "Soil analysis before sowing",
+      "Weekly disease monitoring",
+      "VRA reduces cost by up to 30%",
+    ],
+    publishError: "Failed to publish",
+  },
 }
 
 type Post = {
@@ -44,14 +126,47 @@ type Post = {
 }
 
 export default function CommunityPage() {
-  const [posts, setPosts]       = useState<Post[]>([])
-  const [stats, setStats]       = useState({ totalUsers: 0, totalPosts: 0, recentPosts: 0 })
-  const [loading, setLoading]   = useState(true)
-  const [filter, setFilter]     = useState("TODOS")
-  const [liked, setLiked]       = useState<string[]>([])
-  const [showNew, setShowNew]   = useState(false)
-  const [newPost, setNewPost]   = useState({ title: "", content: "", category: "DICA" })
-  const [posting, setPosting]   = useState(false)
+  const { lang } = useLang()
+  const t = T[lang]
+
+  const POST_TYPES = [
+    { id: "TODOS",      label: t.all },
+    { id: "ALERTA",    label: t.alerts },
+    { id: "DICA",      label: t.tips },
+    { id: "DUVIDA",    label: t.questions },
+    { id: "VENDA",     label: t.offers },
+    { id: "RESULTADO", label: t.results },
+  ]
+
+  function catConfig(cat: string) {
+    switch (cat) {
+      case "ALERTA":    return { color: "bg-red-50 text-red-700 border-red-200",       icon: "🚨", label: t.catAlert }
+      case "DICA":      return { color: "bg-green-50 text-green-700 border-green-200", icon: "💡", label: t.catTip }
+      case "DUVIDA":    return { color: "bg-blue-50 text-blue-700 border-blue-200",    icon: "❓", label: t.catQuestion }
+      case "VENDA":     return { color: "bg-amber-50 text-amber-700 border-amber-200", icon: "🤝", label: t.catOffer }
+      case "RESULTADO": return { color: "bg-purple-50 text-purple-700 border-purple-200", icon: "📊", label: t.catResult }
+      default:          return { color: "bg-gray-50 text-gray-700 border-gray-200",    icon: "📝", label: t.catPost }
+    }
+  }
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return t.timeNow
+    if (mins < 60) return t.timeMinAgo(mins)
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return t.timeHoursAgo(hrs)
+    return t.timeDaysAgo(Math.floor(hrs / 24))
+  }
+
+  const [posts, setPosts]         = useState<Post[]>([])
+  const [stats, setStats]         = useState({ totalUsers: 0, totalPosts: 0, recentPosts: 0 })
+  const [loading, setLoading]     = useState(true)
+  const [filter, setFilter]       = useState("TODOS")
+  const [liked, setLiked]         = useState<string[]>([])
+  const [showNew, setShowNew]     = useState(false)
+  const [newPost, setNewPost]     = useState({ title: "", content: "", category: "DICA" })
+  const [posting, setPosting]     = useState(false)
   const [postError, setPostError] = useState("")
 
   const load = useCallback(async () => {
@@ -88,28 +203,36 @@ export default function CommunityPage() {
       setNewPost({ title: "", content: "", category: "DICA" })
       setShowNew(false)
     } catch (err: any) {
-      setPostError(err.response?.data?.message ?? "Erro ao publicar")
+      setPostError(err.response?.data?.message ?? t.publishError)
     } finally {
       setPosting(false)
     }
   }
 
+  const newPostCategories: [string, string, string][] = [
+    ["DICA", "💡", lang === "pt" ? "Dica" : "Tip"],
+    ["ALERTA", "🚨", lang === "pt" ? "Alerta" : "Alert"],
+    ["DUVIDA", "❓", lang === "pt" ? "Pergunta" : "Question"],
+    ["VENDA", "🤝", lang === "pt" ? "Oferta" : "Offer"],
+    ["RESULTADO", "📊", lang === "pt" ? "Resultado" : "Result"],
+  ]
+
   return (
     <div className="min-h-screen">
-      <Header title="Comunidade" />
+      <Header title={t.pageTitle} />
 
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-gray-900">Rede de Produtores</h1>
-            <p className="text-gray-500 text-sm mt-0.5">Compartilhe alertas, dicas e faça permutas</p>
+            <h1 className="text-2xl font-black text-gray-900">{t.heading}</h1>
+            <p className="text-gray-500 text-sm mt-0.5">{t.subtitle}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={load} className="gap-2">
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>
             <Button className="gap-2" onClick={() => setShowNew(true)}>
-              <Plus className="w-4 h-4" /> Nova publicação
+              <Plus className="w-4 h-4" /> {t.newPost}
             </Button>
           </div>
         </div>
@@ -117,9 +240,9 @@ export default function CommunityPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
-            { icon: Users,       label: "Produtores ativos",  value: stats.totalUsers  > 0 ? stats.totalUsers.toLocaleString("pt-BR")  : "—" },
-            { icon: TrendingUp,  label: "Posts esta semana",  value: stats.recentPosts > 0 ? stats.recentPosts.toLocaleString("pt-BR") : "—" },
-            { icon: MessageCircle, label: "Total de posts",   value: stats.totalPosts  > 0 ? stats.totalPosts.toLocaleString("pt-BR")  : "—" },
+            { icon: Users,         label: t.activeProducers, value: stats.totalUsers  > 0 ? stats.totalUsers.toLocaleString("pt-BR")  : "—" },
+            { icon: TrendingUp,    label: t.postsThisWeek,   value: stats.recentPosts > 0 ? stats.recentPosts.toLocaleString("pt-BR") : "—" },
+            { icon: MessageCircle, label: t.totalPosts,      value: stats.totalPosts  > 0 ? stats.totalPosts.toLocaleString("pt-BR")  : "—" },
           ].map(({ icon: Icon, label, value }) => (
             <Card key={label}>
               <CardContent className="p-4 flex items-center gap-3">
@@ -158,13 +281,13 @@ export default function CommunityPage() {
               <Card className="mb-5 border-green-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-gray-900">Nova publicação</h3>
+                    <h3 className="font-bold text-gray-900">{t.newPostTitle}</h3>
                     <button onClick={() => setShowNew(false)} className="text-gray-400 hover:text-gray-600">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                   <div className="flex gap-2 mb-4 flex-wrap">
-                    {[["DICA","💡","Dica"],["ALERTA","🚨","Alerta"],["DUVIDA","❓","Pergunta"],["VENDA","🤝","Oferta"],["RESULTADO","📊","Resultado"]].map(([val, emoji, label]) => (
+                    {newPostCategories.map(([val, emoji, label]) => (
                       <button
                         key={val}
                         onClick={() => setNewPost(p => ({ ...p, category: val }))}
@@ -179,21 +302,21 @@ export default function CommunityPage() {
                   <input
                     value={newPost.title}
                     onChange={e => setNewPost(p => ({ ...p, title: e.target.value }))}
-                    placeholder="Título (opcional)"
+                    placeholder={t.titlePlaceholder}
                     className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 mb-3 text-gray-900"
                   />
                   <textarea
                     value={newPost.content}
                     onChange={e => setNewPost(p => ({ ...p, content: e.target.value }))}
-                    placeholder="Escreva sua mensagem para a comunidade..."
+                    placeholder={t.contentPlaceholder}
                     rows={4}
                     className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 mb-4 resize-none text-gray-900"
                   />
                   {postError && <p className="text-sm text-red-600 mb-3">{postError}</p>}
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
+                    <Button variant="outline" onClick={() => setShowNew(false)}>{t.cancel}</Button>
                     <Button onClick={submitPost} disabled={!newPost.content.trim() || posting}>
-                      {posting ? "Publicando..." : "Publicar"}
+                      {posting ? t.publishing : t.publish}
                     </Button>
                   </div>
                 </CardContent>
@@ -208,10 +331,10 @@ export default function CommunityPage() {
             ) : posts.length === 0 ? (
               <div className="text-center py-20">
                 <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="font-bold text-gray-900 mb-2">Nenhuma publicação ainda</p>
-                <p className="text-sm text-gray-500 mb-6">Seja o primeiro a publicar na comunidade!</p>
+                <p className="font-bold text-gray-900 mb-2">{t.noPostsTitle}</p>
+                <p className="text-sm text-gray-500 mb-6">{t.noPostsSubtitle}</p>
                 <Button onClick={() => setShowNew(true)} className="gap-2">
-                  <Plus className="w-4 h-4" /> Criar publicação
+                  <Plus className="w-4 h-4" /> {t.createPost}
                 </Button>
               </div>
             ) : (
@@ -251,7 +374,7 @@ export default function CommunityPage() {
                             {post.likes}
                           </button>
                           <button className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-green-500 transition-colors ml-auto">
-                            <Share2 className="w-4 h-4" /> Compartilhar
+                            <Share2 className="w-4 h-4" /> {t.share}
                           </button>
                         </div>
                       </CardContent>
@@ -265,13 +388,9 @@ export default function CommunityPage() {
           {/* Sidebar */}
           <div className="space-y-5">
             <Card>
-              <CardHeader><CardTitle className="text-base">🌡️ Alertas Ativos</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t.activeAlertsTitle}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  { region: "MT Norte",  issue: "Ferrugem asiática", color: "#ef4444" },
-                  { region: "GO Sul",    issue: "Seca prolongada",   color: "#f97316" },
-                  { region: "PR Oeste",  issue: "Geada tardia",      color: "#eab308" },
-                ].map((alert, i) => (
+                {t.alerts_data.map((alert, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-red-50">
                     <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -284,14 +403,9 @@ export default function CommunityPage() {
             </Card>
 
             <Card>
-              <CardHeader><CardTitle className="text-base">💡 Dicas em Alta</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{t.trendingTipsTitle}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {[
-                  "Aplique inoculante separado do fungicida",
-                  "Análise de solo antes da semeadura",
-                  "Monitoramento semanal de doenças",
-                  "VRA reduz custo em até 30%",
-                ].map((tip, i) => (
+                {t.tips_data.map((tip, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <span className="text-green-500 font-bold text-sm mt-0.5">#{i + 1}</span>
                     <p className="text-sm text-gray-600">{tip}</p>
