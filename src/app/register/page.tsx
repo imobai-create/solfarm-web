@@ -1,14 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Leaf, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { api } from "@/services/api"
-import { authService } from "@/services/auth.service"
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planParam = searchParams.get("plan") // CAMPO ou FAZENDA
@@ -30,7 +29,6 @@ export default function RegisterPage() {
       localStorage.setItem("solfarm_token", res.data.accessToken)
       localStorage.setItem("solfarm_refresh", res.data.refreshToken)
       localStorage.setItem("solfarm_user", JSON.stringify(res.data.user))
-      // Se veio com plano, redireciona para upgrade direto
       if (planParam === "CAMPO" || planParam === "FAZENDA") {
         router.push(`/dashboard/upgrade?plan=${planParam}`)
       } else {
@@ -71,7 +69,6 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleRegister} className="space-y-4">
-            {/* Tipo */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Você é:</label>
               <div className="grid grid-cols-2 gap-3">
@@ -126,7 +123,7 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full h-12 text-base" loading={loading}>
-              Criar conta grátis
+              {planParam ? `Criar conta e ir para pagamento` : "Criar conta grátis"}
             </Button>
           </form>
 
@@ -137,5 +134,17 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
+        <div className="text-green-600 text-lg font-semibold">Carregando...</div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   )
 }
