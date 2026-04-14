@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useLang } from "@/hooks/useLang"
 import Link from "next/link"
 import { Leaf, Satellite, ShoppingCart, Users, BarChart3, ArrowRight, CheckCircle, ChevronRight, Map, Zap, Shield, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -152,19 +152,8 @@ function ndviBg(v: number) {
 }
 
 export default function LandingPage() {
-  const [lang, setLangState] = useState<"pt" | "en">("pt")
+  const { lang, setLang } = useLang()
   const t = T[lang]
-
-  // Sync with localStorage so choice persists across pages
-  useEffect(() => {
-    const stored = localStorage.getItem("solfarm_lang")
-    if (stored === "en" || stored === "pt") setLangState(stored)
-  }, [])
-
-  function setLang(l: "pt" | "en") {
-    localStorage.setItem("solfarm_lang", l)
-    setLangState(l)
-  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -189,7 +178,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             {/* Toggle PT / EN */}
             <button
-              onClick={() => setLang(l => l === "pt" ? "en" : "pt")}
+              onClick={() => setLang(lang === "pt" ? "en" : "pt")}
               className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-green-600 border border-gray-200 rounded-lg px-2.5 py-1.5 transition-colors"
             >
               <Globe className="w-3.5 h-3.5" />
