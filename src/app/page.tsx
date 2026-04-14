@@ -121,8 +121,8 @@ const T = {
       h2: "Fair pricing for every farm size",
       plans: [
         { name: "Free", price: "US$ 0", period: "/forever", highlight: false, features: ["1 registered field","Basic NDVI diagnosis","30-day history","Marketplace (view only)"] },
-        { name: "Campo", price: "US$ 9.99", period: "/mo", highlight: true, features: ["Up to 5 fields","NDVI + NDRE + NDWI","VRA fertilization plan","Marketplace purchases","Automatic alerts","12-month history"] },
-        { name: "Fazenda", price: "US$ 29.99", period: "/mo", highlight: false, features: ["Unlimited fields","Advanced AI","Agricultural score + credit","API access","PDF reports","Dedicated support"] },
+        { name: "Field", price: "US$ 9.99", period: "/mo", highlight: true, features: ["Up to 5 fields","NDVI + NDRE + NDWI","VRA fertilization plan","Marketplace purchases","Automatic alerts","12-month history"] },
+        { name: "Farm", price: "US$ 29.99", period: "/mo", highlight: false, features: ["Unlimited fields","Advanced AI","Agricultural score + credit","API access","PDF reports","Dedicated support"] },
       ],
       startFree: "Get started free",
       subscribe: "Subscribe",
