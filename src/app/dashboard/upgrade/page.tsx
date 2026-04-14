@@ -32,7 +32,7 @@ const PLAN_BTN: Record<PlanId, string> = {
 }
 
 // ─────────────────────────────────────────────────────────────
-export default function UpgradePage() {
+function UpgradePage() {
   const [plans, setPlans] = useState<any[]>([])
   const [currentPlan, setCurrentPlan] = useState<PlanId>("FREE")
   const [billing, setBilling] = useState<BillingType>("PIX")
