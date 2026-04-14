@@ -3,9 +3,11 @@
 import { Bell, Search } from "lucide-react"
 import { authService } from "@/services/auth.service"
 import { useEffect, useState } from "react"
+import { useLang } from "@/hooks/useLang"
 
 export function Header({ title }: { title?: string }) {
   const [user, setUser] = useState<any>(null)
+  const { lang } = useLang()
 
   useEffect(() => {
     setUser(authService.getStoredUser())
@@ -23,7 +25,7 @@ export function Header({ title }: { title?: string }) {
           <Search className="absolute left-3 w-4 h-4 text-gray-400" />
           <input
             className="pl-9 pr-4 h-9 text-sm bg-gray-50 border border-gray-200 rounded-xl w-56 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="Buscar..."
+            placeholder={lang === "pt" ? "Buscar..." : "Search..."}
           />
         </div>
 

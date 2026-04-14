@@ -5,28 +5,32 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Map, Satellite, BarChart3,
-  ShoppingCart, Users, User, LogOut, Leaf, TrendingUp, Zap, Coins, Shield,
+  ShoppingCart, Users, User, LogOut, Leaf, TrendingUp, Zap, Coins, Shield, Globe,
 } from "lucide-react"
 import { authService } from "@/services/auth.service"
 import { useRouter } from "next/navigation"
+import { useLang } from "@/hooks/useLang"
 
-const navItems = [
-  { href: "/dashboard", label: "Início", icon: LayoutDashboard },
-  { href: "/dashboard/areas", label: "Minhas Áreas", icon: Map },
-  { href: "/dashboard/satellite", label: "Satélite", icon: Satellite },
-  { href: "/dashboard/diagnostics", label: "Diagnósticos", icon: BarChart3 },
-  { href: "/dashboard/financeiro", label: "Fluxo de Caixa", icon: TrendingUp },
-  { href: "/dashboard/marketplace", label: "Marketplace", icon: ShoppingCart },
-  { href: "/dashboard/community", label: "Comunidade", icon: Users },
-  { href: "/dashboard/profile", label: "Perfil", icon: User },
-  { href: "/dashboard/farmcoin", label: "FARMCOIN", icon: Coins },
-  { href: "/dashboard/upgrade", label: "Planos & Upgrade", icon: Zap },
+type NavItem = { href: string; labelPt: string; labelEn: string; icon: React.ElementType }
+
+const navItems: NavItem[] = [
+  { href: "/dashboard",              labelPt: "Início",          labelEn: "Home",          icon: LayoutDashboard },
+  { href: "/dashboard/areas",        labelPt: "Minhas Áreas",    labelEn: "My Fields",     icon: Map },
+  { href: "/dashboard/satellite",    labelPt: "Satélite",        labelEn: "Satellite",     icon: Satellite },
+  { href: "/dashboard/diagnostics",  labelPt: "Diagnósticos",    labelEn: "Diagnostics",   icon: BarChart3 },
+  { href: "/dashboard/financeiro",   labelPt: "Fluxo de Caixa",  labelEn: "Cash Flow",     icon: TrendingUp },
+  { href: "/dashboard/marketplace",  labelPt: "Marketplace",     labelEn: "Marketplace",   icon: ShoppingCart },
+  { href: "/dashboard/community",    labelPt: "Comunidade",      labelEn: "Community",     icon: Users },
+  { href: "/dashboard/profile",      labelPt: "Perfil",          labelEn: "Profile",       icon: User },
+  { href: "/dashboard/farmcoin",     labelPt: "FARMCOIN",        labelEn: "FARMCOIN",      icon: Coins },
+  { href: "/dashboard/upgrade",      labelPt: "Planos & Upgrade", labelEn: "Plans & Upgrade", icon: Zap },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const currentUser = authService.getStoredUser()
+  const { lang, setLang } = useLang()
 
   async function handleLogout() {
     await authService.logout()
@@ -44,12 +48,23 @@ export function Sidebar() {
           <span className="text-xl font-black text-gray-900">Sol</span>
           <span className="text-xl font-black text-green-600">Farm</span>
         </div>
+
+        {/* PT / EN toggle */}
+        <button
+          onClick={() => setLang(lang === "pt" ? "en" : "pt")}
+          className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg bg-white/70 border border-[#d4cec5] text-xs font-bold text-gray-600 hover:bg-white transition"
+          title={lang === "pt" ? "Switch to English" : "Mudar para Português"}
+        >
+          <Globe className="w-3 h-3" />
+          {lang === "pt" ? "EN" : "PT"}
+        </button>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, labelPt, labelEn, icon: Icon }) => {
           const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
+          const label = lang === "pt" ? labelPt : labelEn
           return (
             <Link
               key={href}
@@ -97,7 +112,7 @@ export function Sidebar() {
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
         >
           <LogOut className="w-5 h-5" />
-          Sair da conta
+          {lang === "pt" ? "Sair da conta" : "Log out"}
         </button>
       </div>
     </aside>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Leaf, Satellite, ShoppingCart, Users, BarChart3, ArrowRight, CheckCircle, ChevronRight, Map, Zap, Shield, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -152,8 +152,19 @@ function ndviBg(v: number) {
 }
 
 export default function LandingPage() {
-  const [lang, setLang] = useState<"pt" | "en">("pt")
+  const [lang, setLangState] = useState<"pt" | "en">("pt")
   const t = T[lang]
+
+  // Sync with localStorage so choice persists across pages
+  useEffect(() => {
+    const stored = localStorage.getItem("solfarm_lang")
+    if (stored === "en" || stored === "pt") setLangState(stored)
+  }, [])
+
+  function setLang(l: "pt" | "en") {
+    localStorage.setItem("solfarm_lang", l)
+    setLangState(l)
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -369,9 +380,13 @@ export default function LandingPage() {
                   <span className="text-4xl font-black text-gray-900">{price}</span>
                   <span className="text-gray-400 text-sm">{period}</span>
                 </div>
-                <Link href={name === "Grátis" || name === "Free" ? "/register" : `/register?plan=${name === "Campo" ? "CAMPO" : "FAZENDA"}`} className="block mb-8">
+                <Link href={
+                  (name === "Grátis" || name === "Free")
+                    ? "/register"
+                    : `/register?plan=${(name === "Campo" || name === "Field") ? "CAMPO" : "FAZENDA"}`
+                } className="block mb-8">
                   <Button className="w-full" variant={highlight ? "default" : "outline"}>
-                    {name === "Grátis" || name === "Free" ? t.pricing.startFree : `${t.pricing.subscribe} ${name}`}
+                    {(name === "Grátis" || name === "Free") ? t.pricing.startFree : `${t.pricing.subscribe} ${name}`}
                   </Button>
                 </Link>
                 <ul className="space-y-3">
