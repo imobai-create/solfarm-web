@@ -6,12 +6,13 @@ import { paymentService, type CheckoutResult } from "@/services/payment.service"
 import { authService } from "@/services/auth.service"
 import {
   Check, Zap, Crown, Leaf, ArrowRight, Copy, RefreshCw,
-  QrCode, FileText, Loader2, CheckCircle2, AlertCircle, X, CreditCard,
+  QrCode, FileText, Loader2, CheckCircle2, AlertCircle, X, Globe,
 } from "lucide-react"
 
 // ── tipos locais ──────────────────────────────────────────────
 type BillingType = "PIX" | "BOLETO" | "CREDIT_CARD" | "UNDEFINED"
 type PlanId = "FREE" | "CAMPO" | "FAZENDA"
+type Region = "br" | "intl"
 
 const PLAN_ICONS: Record<PlanId, React.ReactNode> = {
   FREE: <Leaf className="w-5 h-5 text-green-600" />,
@@ -31,19 +32,27 @@ const PLAN_BTN: Record<PlanId, string> = {
   FAZENDA: "bg-purple-600 text-white hover:bg-purple-700",
 }
 
+// Preços internacionais (US$)
+const INTL_PRICES: Record<string, string> = {
+  CAMPO: "US$ 9.99",
+  FAZENDA: "US$ 29.99",
+}
+
 // ─────────────────────────────────────────────────────────────
 function UpgradePage() {
   const [plans, setPlans] = useState<any[]>([])
   const [currentPlan, setCurrentPlan] = useState<PlanId>("FREE")
+  const [region, setRegion] = useState<Region>("br")
   const [billing, setBilling] = useState<BillingType>("PIX")
   const [cpfCnpj, setCpfCnpj] = useState("")
   const [selectedPlan, setSelectedPlan] = useState<"CAMPO" | "FAZENDA" | null>(null)
   const [checkout, setCheckout] = useState<CheckoutResult | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<string | null>(null)   // plan id being loaded
   const [polling, setPolling] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [stripeSuccess, setStripeSuccess] = useState(false)
 
   const searchParams = useSearchParams()
 
@@ -51,14 +60,29 @@ function UpgradePage() {
     paymentService.getPlans().then(setPlans).catch(() => {})
     const user = authService.getStoredUser()
     if (user?.plan) setCurrentPlan(user.plan as PlanId)
+
     // Auto-seleciona plano se veio da home
     const planFromUrl = searchParams.get("plan") as "CAMPO" | "FAZENDA" | null
     if (planFromUrl === "CAMPO" || planFromUrl === "FAZENDA") {
       setSelectedPlan(planFromUrl)
     }
+
+    // Stripe retornou com sucesso
+    if (searchParams.get("success") === "true") {
+      setStripeSuccess(true)
+      const planParam = searchParams.get("plan") as "CAMPO" | "FAZENDA" | null
+      if (planParam) {
+        const user = authService.getStoredUser()
+        if (user) {
+          user.plan = planParam
+          localStorage.setItem("solfarm_user", JSON.stringify(user))
+          setCurrentPlan(planParam)
+        }
+      }
+    }
   }, [searchParams])
 
-  // ── polling de status após checkout ─────────────────────────
+  // ── polling de status após checkout Asaas ───────────────────
   const pollStatus = useCallback(async (paymentId: string) => {
     setPolling(true)
     let tries = 0
@@ -70,14 +94,12 @@ function UpgradePage() {
           setPaymentStatus("CONFIRMED")
           clearInterval(interval)
           setPolling(false)
-          // Atualiza user no localStorage
           const user = authService.getStoredUser()
           if (user && selectedPlan) {
             user.plan = selectedPlan
             localStorage.setItem("solfarm_user", JSON.stringify(user))
           }
         } else if (tries >= 20) {
-          // para de checar após ~2min
           clearInterval(interval)
           setPolling(false)
         }
@@ -88,13 +110,13 @@ function UpgradePage() {
     }, 6000)
   }, [selectedPlan])
 
-  // ── inicia checkout ──────────────────────────────────────────
-  async function handleCheckout(plan: "CAMPO" | "FAZENDA") {
+  // ── checkout Brasil (Asaas) ──────────────────────────────────
+  async function handleBrCheckout(plan: "CAMPO" | "FAZENDA") {
     setSelectedPlan(plan)
     setError(null)
     setCheckout(null)
     setPaymentStatus(null)
-    setLoading(true)
+    setLoading(plan)
     try {
       const result = await paymentService.checkout({
         plan,
@@ -103,7 +125,6 @@ function UpgradePage() {
         recurrent: true,
       })
       setCheckout(result)
-      // Cartão ou link universal → redireciona para página segura do Asaas
       if ((billing === "CREDIT_CARD" || billing === "UNDEFINED") && result.payment?.invoiceUrl) {
         window.open(result.payment.invoiceUrl, "_blank")
         return
@@ -114,7 +135,21 @@ function UpgradePage() {
     } catch (err: any) {
       setError(err?.response?.data?.error ?? "Erro ao gerar cobrança. Tente novamente.")
     } finally {
-      setLoading(false)
+      setLoading(null)
+    }
+  }
+
+  // ── checkout Internacional (Stripe) ─────────────────────────
+  async function handleStripeCheckout(plan: "CAMPO" | "FAZENDA") {
+    setSelectedPlan(plan)
+    setError(null)
+    setLoading(plan)
+    try {
+      const { checkoutUrl } = await paymentService.stripeCheckout({ plan, currency: "usd" })
+      window.location.href = checkoutUrl
+    } catch (err: any) {
+      setError(err?.response?.data?.error ?? "Erro ao iniciar pagamento internacional. Tente novamente.")
+      setLoading(null)
     }
   }
 
@@ -132,7 +167,6 @@ function UpgradePage() {
     setError(null)
   }
 
-  // ── formatação CPF/CNPJ ──────────────────────────────────────
   function formatDoc(v: string) {
     const digits = v.replace(/\D/g, "").slice(0, 14)
     if (digits.length <= 11) {
@@ -148,7 +182,7 @@ function UpgradePage() {
       <div className="max-w-5xl mx-auto px-4 py-10">
 
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-black text-gray-900 mb-2">Escolha seu plano</h1>
           <p className="text-stone-500 text-base">
             Desbloqueie o potencial completo da sua fazenda com tecnologia de satélite e IA
@@ -161,55 +195,103 @@ function UpgradePage() {
           )}
         </div>
 
-        {/* Toggle billing */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex bg-white rounded-xl border border-stone-200 p-1 gap-1 flex-wrap justify-center">
+        {/* Toggle região */}
+        <div className="flex justify-center mb-6">
+          <div className="inline-flex bg-gray-100 rounded-xl p-1 gap-1">
             {([
-              { id: "PIX",         label: "⚡ PIX" },
-              { id: "CREDIT_CARD", label: "💳 Cartão" },
-              { id: "BOLETO",      label: "📄 Boleto" },
-              { id: "UNDEFINED",   label: "🔗 Link" },
-            ] as { id: BillingType; label: string }[]).map(({ id, label }) => (
+              { id: "br",   label: "🇧🇷 Brasil (R$)" },
+              { id: "intl", label: "🌍 Internacional (US$)" },
+            ] as { id: Region; label: string }[]).map(({ id, label }) => (
               <button
                 key={id}
-                onClick={() => setBilling(id)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  billing === id
-                    ? "bg-green-600 text-white shadow"
-                    : "text-stone-500 hover:text-stone-700"
+                onClick={() => setRegion(id)}
+                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+                  region === id
+                    ? "bg-white shadow text-gray-800"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
-          {billing === "CREDIT_CARD" && (
-            <p className="text-xs text-stone-500 text-center mt-2 w-full">
-              🔒 Dados do cartão inseridos diretamente na página segura do Asaas
-            </p>
-          )}
-          {billing === "UNDEFINED" && (
-            <p className="text-xs text-stone-500 text-center mt-2 w-full">
-              🔗 Você escolhe o método na hora do pagamento (PIX, cartão ou boleto)
-            </p>
-          )}
         </div>
 
-        {/* CPF/CNPJ (opcional mas recomendado) */}
-        <div className="flex justify-center mb-8">
-          <div className="w-full max-w-xs">
-            <label className="block text-xs font-semibold text-stone-500 mb-1 text-center uppercase tracking-wide">
-              CPF ou CNPJ (opcional)
-            </label>
-            <input
-              type="text"
-              value={cpfCnpj}
-              onChange={(e) => setCpfCnpj(formatDoc(e.target.value))}
-              placeholder="000.000.000-00"
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-400"
-            />
+        {/* Banner internacional */}
+        {region === "intl" && (
+          <div className="flex justify-center mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-6 py-4 text-center max-w-lg w-full">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Globe className="w-4 h-4 text-blue-600" />
+                <p className="text-blue-800 font-semibold text-sm">Pagamento internacional via Stripe</p>
+              </div>
+              <p className="text-blue-600 text-xs">
+                Cartão de crédito internacional · Apple Pay · Google Pay · 135+ países
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 mt-3 text-xs text-blue-500">
+                <span>🔒 SSL / PCI-DSS</span>
+                <span>·</span>
+                <span>💰 USD · EUR · BRL</span>
+                <span>·</span>
+                <span>↩️ Cancel anytime</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Toggle billing (somente Brasil) */}
+        {region === "br" && (
+          <>
+            <div className="flex flex-col items-center mb-6">
+              <div className="inline-flex bg-white rounded-xl border border-stone-200 p-1 gap-1 flex-wrap justify-center">
+                {([
+                  { id: "PIX",         label: "⚡ PIX" },
+                  { id: "CREDIT_CARD", label: "💳 Cartão BR" },
+                  { id: "BOLETO",      label: "📄 Boleto" },
+                  { id: "UNDEFINED",   label: "🔗 Link" },
+                ] as { id: BillingType; label: string }[]).map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => setBilling(id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      billing === id
+                        ? "bg-green-600 text-white shadow"
+                        : "text-stone-500 hover:text-stone-700"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {billing === "CREDIT_CARD" && (
+                <p className="text-xs text-stone-500 text-center mt-2">
+                  🔒 Dados do cartão inseridos diretamente na página segura do Asaas
+                </p>
+              )}
+              {billing === "UNDEFINED" && (
+                <p className="text-xs text-stone-500 text-center mt-2">
+                  🔗 Você escolhe o método na hora do pagamento (PIX, cartão ou boleto)
+                </p>
+              )}
+            </div>
+
+            {/* CPF/CNPJ */}
+            <div className="flex justify-center mb-8">
+              <div className="w-full max-w-xs">
+                <label className="block text-xs font-semibold text-stone-500 mb-1 text-center uppercase tracking-wide">
+                  CPF ou CNPJ (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={cpfCnpj}
+                  onChange={(e) => setCpfCnpj(formatDoc(e.target.value))}
+                  placeholder="000.000.000-00"
+                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Cards de planos */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -217,6 +299,7 @@ function UpgradePage() {
             const id = plan.id as PlanId
             const isCurrent = id === currentPlan
             const isFree = id === "FREE"
+            const isLoading = loading === id
 
             return (
               <div
@@ -243,9 +326,15 @@ function UpgradePage() {
                   </div>
                 </div>
 
+                {/* Preço */}
                 <div className="mb-5">
                   {plan.price === 0 ? (
                     <span className="text-3xl font-black text-gray-900">Grátis</span>
+                  ) : region === "intl" ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-gray-900">{INTL_PRICES[id]}</span>
+                      <span className="text-stone-400 text-sm">/mo</span>
+                    </div>
                   ) : (
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg font-semibold text-stone-400">R$</span>
@@ -265,18 +354,30 @@ function UpgradePage() {
                 </ul>
 
                 <button
-                  disabled={isFree || isCurrent || loading}
-                  onClick={() => !isFree && !isCurrent && handleCheckout(id as "CAMPO" | "FAZENDA")}
-                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${PLAN_BTN[id]} ${
-                    (isFree || isCurrent) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                  }`}
+                  disabled={isFree || isCurrent || isLoading}
+                  onClick={() => {
+                    if (isFree || isCurrent) return
+                    const p = id as "CAMPO" | "FAZENDA"
+                    if (region === "intl") handleStripeCheckout(p)
+                    else handleBrCheckout(p)
+                  }}
+                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                    region === "intl" && !isFree && !isCurrent
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : PLAN_BTN[id]
+                  } ${(isFree || isCurrent) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 >
-                  {loading && selectedPlan === id ? (
+                  {isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : isCurrent ? (
                     "Plano atual"
                   ) : isFree ? (
                     "Gratuito sempre"
+                  ) : region === "intl" ? (
+                    <>
+                      <Globe className="w-4 h-4" />
+                      Subscribe with Stripe
+                    </>
                   ) : (
                     <>
                       Assinar {plan.name}
@@ -297,12 +398,11 @@ function UpgradePage() {
           </div>
         )}
 
-        {/* Modal de checkout */}
+        {/* Modal de checkout Asaas */}
         {checkout && !isPaid && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
 
-              {/* header */}
               <div className="bg-gradient-to-r from-green-700 to-green-600 px-6 py-5 text-white">
                 <button
                   onClick={handleClose}
@@ -321,7 +421,6 @@ function UpgradePage() {
               <div className="p-6">
                 {billing === "PIX" && checkout.payment.pixQrCode ? (
                   <>
-                    {/* QR Code */}
                     <div className="flex flex-col items-center mb-5">
                       <div className="p-3 bg-white border-2 border-green-200 rounded-xl shadow-inner mb-3">
                         <img
@@ -336,7 +435,6 @@ function UpgradePage() {
                       </div>
                     </div>
 
-                    {/* Copia e Cola */}
                     <div className="mb-4">
                       <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">
                         PIX Copia e Cola
@@ -404,7 +502,7 @@ function UpgradePage() {
           </div>
         )}
 
-        {/* Modal de sucesso */}
+        {/* Modal de sucesso (Asaas polling) */}
         {isPaid && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
@@ -416,10 +514,7 @@ function UpgradePage() {
                 Seu plano <strong>{checkout?.plan.nome}</strong> foi ativado. Bem-vindo ao SolFarm Pro!
               </p>
               <button
-                onClick={() => {
-                  handleClose()
-                  window.location.href = "/dashboard"
-                }}
+                onClick={() => { handleClose(); window.location.href = "/dashboard" }}
                 className="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition"
               >
                 Ir para o dashboard
@@ -428,12 +523,44 @@ function UpgradePage() {
           </div>
         )}
 
+        {/* Modal de sucesso (Stripe redirect) */}
+        {stripeSuccess && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+              <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-5">
+                <CheckCircle2 className="w-10 h-10 text-blue-600" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2">Subscription active! 🎉</h2>
+              <p className="text-stone-500 mb-6">
+                Your plan was activated successfully. Welcome to SolFarm Pro!
+              </p>
+              <button
+                onClick={() => { setStripeSuccess(false); window.location.href = "/dashboard" }}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition"
+              >
+                Go to dashboard →
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Rodapé de segurança */}
         <div className="flex flex-wrap justify-center gap-6 text-xs text-stone-400 mt-4">
-          <span>🔒 Pagamentos seguros via Asaas</span>
-          <span>📄 Nota fiscal automática</span>
-          <span>↩️ Cancele quando quiser</span>
-          <span>🇧🇷 PIX instantâneo</span>
+          {region === "br" ? (
+            <>
+              <span>🔒 Pagamentos seguros via Asaas</span>
+              <span>📄 Nota fiscal automática</span>
+              <span>↩️ Cancele quando quiser</span>
+              <span>🇧🇷 PIX instantâneo</span>
+            </>
+          ) : (
+            <>
+              <span>🔒 Secure payments via Stripe</span>
+              <span>🌍 135+ countries</span>
+              <span>↩️ Cancel anytime</span>
+              <span>💳 Apple Pay · Google Pay</span>
+            </>
+          )}
         </div>
       </div>
     </div>

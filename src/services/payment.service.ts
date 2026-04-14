@@ -67,4 +67,18 @@ export const paymentService = {
     const res = await api.get(`/payments/status/${paymentId}`)
     return res.data
   },
+
+  // ── Stripe (pagamentos internacionais) ──────────────────────
+  async stripeCheckout(data: {
+    plan: "CAMPO" | "FAZENDA"
+    currency?: "usd" | "eur" | "brl"
+  }): Promise<{ checkoutUrl: string; sessionId: string }> {
+    const res = await api.post("/stripe/checkout", data)
+    return res.data
+  },
+
+  async stripePortal(): Promise<{ url: string }> {
+    const res = await api.post("/stripe/portal")
+    return res.data
+  },
 }
