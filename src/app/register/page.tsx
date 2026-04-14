@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Leaf, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { api } from "@/services/api"
@@ -10,6 +10,8 @@ import { authService } from "@/services/auth.service"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const planParam = searchParams.get("plan") // CAMPO ou FAZENDA
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", state: "", role: "PRODUCER" })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -28,7 +30,12 @@ export default function RegisterPage() {
       localStorage.setItem("solfarm_token", res.data.accessToken)
       localStorage.setItem("solfarm_refresh", res.data.refreshToken)
       localStorage.setItem("solfarm_user", JSON.stringify(res.data.user))
-      router.push("/dashboard")
+      // Se veio com plano, redireciona para upgrade direto
+      if (planParam === "CAMPO" || planParam === "FAZENDA") {
+        router.push(`/dashboard/upgrade?plan=${planParam}`)
+      } else {
+        router.push("/dashboard")
+      }
     } catch (err: any) {
       setError(err?.response?.data?.error ?? "Erro ao criar conta.")
     } finally {
@@ -46,8 +53,14 @@ export default function RegisterPage() {
             </div>
             <span className="text-2xl font-black"><span className="text-gray-900">Sol</span><span className="text-green-600">Farm</span></span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Criar conta grátis</h1>
-          <p className="text-gray-500 text-sm mt-1">1 área gratuita para sempre · Sem cartão</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {planParam ? `Criar conta — Plano ${planParam === "CAMPO" ? "Campo" : "Fazenda"}` : "Criar conta grátis"}
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {planParam
+              ? "Crie sua conta e escolha a forma de pagamento logo em seguida"
+              : "1 área gratuita para sempre · Atualize quando quiser"}
+          </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">

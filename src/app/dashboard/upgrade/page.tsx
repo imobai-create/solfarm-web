@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { paymentService, type CheckoutResult } from "@/services/payment.service"
 import { authService } from "@/services/auth.service"
 import {
   Check, Zap, Crown, Leaf, ArrowRight, Copy, RefreshCw,
-  QrCode, FileText, Loader2, CheckCircle2, AlertCircle, X,
+  QrCode, FileText, Loader2, CheckCircle2, AlertCircle, X, CreditCard,
 } from "lucide-react"
 
 // ── tipos locais ──────────────────────────────────────────────
@@ -44,11 +45,18 @@ export default function UpgradePage() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const searchParams = useSearchParams()
+
   useEffect(() => {
     paymentService.getPlans().then(setPlans).catch(() => {})
     const user = authService.getStoredUser()
     if (user?.plan) setCurrentPlan(user.plan as PlanId)
-  }, [])
+    // Auto-seleciona plano se veio da home
+    const planFromUrl = searchParams.get("plan") as "CAMPO" | "FAZENDA" | null
+    if (planFromUrl === "CAMPO" || planFromUrl === "FAZENDA") {
+      setSelectedPlan(planFromUrl)
+    }
+  }, [searchParams])
 
   // ── polling de status após checkout ─────────────────────────
   const pollStatus = useCallback(async (paymentId: string) => {

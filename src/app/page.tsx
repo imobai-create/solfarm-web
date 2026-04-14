@@ -65,7 +65,7 @@ export default function LandingPage() {
                 </Link>
               </div>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                {["Sem cartão de crédito", "1 área grátis para sempre", "Setup em 2 minutos"].map(t => (
+                {["Plano grátis disponível", "1 área grátis para sempre", "Setup em 2 minutos"].map(t => (
                   <div key={t} className="flex items-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {t}
                   </div>
@@ -217,7 +217,7 @@ export default function LandingPage() {
                   <span className="text-4xl font-black text-gray-900">{price}</span>
                   <span className="text-gray-400 text-sm">{period}</span>
                 </div>
-                <Link href="/register" className="block mb-8">
+                <Link href={name === "Grátis" ? "/register" : `/register?plan=${name === "Campo" ? "CAMPO" : "FAZENDA"}`} className="block mb-8">
                   <Button className="w-full" variant={highlight ? "default" : "outline"}>
                     {name === "Grátis" ? "Começar grátis" : `Assinar ${name}`}
                   </Button>
@@ -252,7 +252,7 @@ export default function LandingPage() {
               </Button>
             </Link>
           </div>
-          <p className="text-green-300 text-sm mt-6">Sem cartão de crédito · 1 área grátis · Cancele quando quiser</p>
+          <p className="text-green-300 text-sm mt-6">💳 PIX · Cartão · Boleto · Plano grátis disponível · Cancele quando quiser</p>
         </div>
       </section>
 
