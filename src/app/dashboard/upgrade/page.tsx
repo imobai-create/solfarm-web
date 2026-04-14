@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { paymentService, type CheckoutResult } from "@/services/payment.service"
 import { authService } from "@/services/auth.service"
@@ -440,13 +440,10 @@ export default function UpgradePage() {
   )
 }
 
-import { Suspense } from "react"
-
-const UpgradePageWithSuspense = UpgradePage
 export default function Page() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-green-600 font-semibold">Carregando...</div>}>
-      <UpgradePageWithSuspense />
+      <UpgradePage />
     </Suspense>
   )
 }
