@@ -71,9 +71,23 @@ export default function TerrabrasPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: zodResolver(schema) })
 
+  const [apiError, setApiError] = useState<string | null>(null)
+
   const onSubmit = async (data: FormData) => {
-    await new Promise((r) => setTimeout(r, 900))
-    console.log("Cadastro Terrabras:", data)
+    setApiError(null)
+    const res = await fetch("/api/cadastro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    if (res.status === 409) {
+      setApiError("Este e-mail já está na nossa lista.")
+      return
+    }
+    if (!res.ok) {
+      setApiError("Erro ao salvar. Tente novamente.")
+      return
+    }
     setSubmitted(true)
   }
 
@@ -455,6 +469,9 @@ export default function TerrabrasPage() {
                 {isSubmitting ? "Enviando..." : "Garantir minha vaga na lista"}
               </button>
 
+              {apiError && (
+                <p className="text-center text-[10px] text-red-400/80 -mt-1">{apiError}</p>
+              )}
               <p className="text-center text-[9px] text-[#F2EDE4]/18 font-light pt-1">
                 Nenhum spam. Apenas quando os vinhos estiverem disponíveis.
               </p>
