@@ -21,6 +21,15 @@ export const metadata: Metadata = {
   description:
     "Vinho de altitude produzido ao pé da Serra da Canastra, a 1.350 m, em solo com milhões de anos. Syrah e Cabernet Franc — safra 2024.",
   keywords: ["terrabras", "vinho", "serra da canastra", "syrah", "cabernet franc", "altitude", "minas gerais"],
+  metadataBase: new URL("https://vinicolaterrabras.com.br"),
+  openGraph: {
+    siteName: "Terrabras",
+    locale: "pt_BR",
+    type: "website",
+    url: "https://vinicolaterrabras.com.br",
+    title: "Terrabras — Serra da Canastra",
+    description: "Vinho de altitude produzido ao pé da Serra da Canastra, a 1.350 m, em solo com milhões de anos.",
+  },
 }
 
 export default function RootLayout({
