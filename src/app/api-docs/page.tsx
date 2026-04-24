@@ -3,7 +3,7 @@ import { Leaf, Key, Terminal, Zap, Lock } from "lucide-react"
 
 export const metadata = { title: "API Docs — SolFarm", description: "Documentação da API pública da plataforma SolFarm." }
 
-const BASE_URL = "https://solfarm-api-production.up.railway.app"
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://solfarm-api-production.up.railway.app"
 
 function CodeBlock({ code, lang = "bash" }: { code: string; lang?: string }) {
   return (
