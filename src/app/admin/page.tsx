@@ -9,6 +9,13 @@ import {
   Activity, RefreshCw, Crown, Zap, Leaf,
 } from "lucide-react"
 
+const STAT_COLORS: Record<string, { bg: string; text: string }> = {
+  blue:   { bg: "bg-blue-50",   text: "text-blue-600" },
+  green:  { bg: "bg-green-50",  text: "text-green-600" },
+  purple: { bg: "bg-purple-50", text: "text-purple-600" },
+  amber:  { bg: "bg-amber-50",  text: "text-amber-600" },
+}
+
 const PLAN_ICON: Record<string, React.ReactNode> = {
   FREE: <Leaf className="w-4 h-4 text-green-500" />,
   CAMPO: <Zap className="w-4 h-4 text-amber-500" />,
@@ -93,8 +100,8 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {statCards.map(({ icon: Icon, label, value, sub, color }) => (
             <div key={label} className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
-              <div className={`w-10 h-10 rounded-xl bg-${color}-50 flex items-center justify-center mb-3`}>
-                <Icon className={`w-5 h-5 text-${color}-600`} />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${STAT_COLORS[color]?.bg ?? "bg-gray-50"}`}>
+                <Icon className={`w-5 h-5 ${STAT_COLORS[color]?.text ?? "text-gray-600"}`} />
               </div>
               <p className="text-2xl font-black text-gray-900">{value}</p>
               <p className="text-xs font-semibold text-stone-500 mt-1">{label}</p>

@@ -141,12 +141,6 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          <div className="mt-5 p-3 bg-amber-50 rounded-xl border border-amber-100">
-            <p className="text-xs text-amber-700 font-semibold text-center">🧪 Demo</p>
-            <p className="text-xs text-amber-600 text-center mt-1">
-              joao@solfarm.com.br / solfarm123
-            </p>
-          </div>
         </div>
 
         <p className="text-center mt-5">

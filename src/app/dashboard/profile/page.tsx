@@ -188,9 +188,9 @@ export default function ProfilePage() {
   ]
 
   const upgradePlans = [
-    { plan: "Starter", price: "R$49/mês", areas: 5,   diag: 20,  color: "blue" },
-    { plan: "Pro",     price: "R$149/mês", areas: 20,  diag: 100, color: "green" },
-    { plan: "Enterprise", price: "R$499/mês", areas: 999, diag: 999, color: "purple" },
+    { plan: "Starter",    price: "R$49/mês",  areas: 5,   diag: 20,  textColor: "text-blue-700" },
+    { plan: "Pro",        price: "R$149/mês", areas: 20,  diag: 100, textColor: "text-green-700" },
+    { plan: "Enterprise", price: "R$499/mês", areas: 999, diag: 999, textColor: "text-purple-700" },
   ]
 
   return (
@@ -348,7 +348,7 @@ export default function ProfilePage() {
                     {upgradePlans.map(p => (
                       <div key={p.plan} className="flex items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all">
                         <div>
-                          <p className={`font-bold text-${p.color}-700`}>{p.plan}</p>
+                          <p className={`font-bold ${p.textColor}`}>{p.plan}</p>
                           <p className="text-xs text-gray-500">
                             {p.areas === 999 ? t.unlimitedAreas : `${p.areas} ${lang === "pt" ? "áreas" : "areas"}`} · {p.diag === 999 ? t.unlimitedDiagnostics : `${p.diag} ${lang === "pt" ? "diagnósticos" : "diagnostics"}`}
                           </p>

@@ -31,6 +31,10 @@ export default function DiagnosticDetailPage() {
   const [tab, setTab] = useState<Tab>("overview")
 
   useEffect(() => {
+    if (!id) {
+      router.push("/dashboard/diagnostics")
+      return
+    }
     api.get(`/diagnostics/${id}`)
       .then(res => setDiag(res.data.diagnostic ?? res.data))
       .catch(() => router.push("/dashboard/diagnostics"))

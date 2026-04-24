@@ -78,6 +78,13 @@ const T = {
   },
 }
 
+const STAT_COLORS: Record<string, { bg: string; text: string }> = {
+  green:   { bg: "bg-green-50",   text: "text-green-600" },
+  emerald: { bg: "bg-emerald-50", text: "text-emerald-600" },
+  blue:    { bg: "bg-blue-50",    text: "text-blue-600" },
+  amber:   { bg: "bg-amber-50",   text: "text-amber-600" },
+}
+
 export default function DashboardPage() {
   const [areas, setAreas] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
@@ -141,8 +148,8 @@ export default function DashboardPage() {
             <Card key={label}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl bg-${color}-50 flex items-center justify-center`}>
-                    <Icon className={`w-5 h-5 text-${color}-600`} />
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${STAT_COLORS[color]?.bg ?? "bg-gray-50"}`}>
+                    <Icon className={`w-5 h-5 ${STAT_COLORS[color]?.text ?? "text-gray-600"}`} />
                   </div>
                 </div>
                 <p className="text-2xl font-black text-gray-900">{value}</p>

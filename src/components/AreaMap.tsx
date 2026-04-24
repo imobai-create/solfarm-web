@@ -19,6 +19,7 @@ export function AreaMap({ onPolygonChange, initialPolygon }: AreaMapProps) {
   const [points, setPoints] = useState<[number, number][]>([])
   const [leafletReady, setLeafletReady] = useState(false)
   const [hectares, setHectares] = useState<number | null>(null)
+  const [polygonError, setPolygonError] = useState<string | null>(null)
 
   // Load Leaflet dynamically (no SSR)
   useEffect(() => {
@@ -73,12 +74,19 @@ export function AreaMap({ onPolygonChange, initialPolygon }: AreaMapProps) {
     if (initialPolygon) {
       try {
         const geo = JSON.parse(initialPolygon)
-        const coords = geo.coordinates[0].map(([lng, lat]: number[]) => [lat, lng] as [number, number])
-        setPoints(coords.slice(0, -1)) // remove closing point
+        const ring = geo?.coordinates?.[0]
+        if (!Array.isArray(ring) || ring.length < 3) {
+          throw new Error("GeoJSON inválido: coordenadas ausentes ou insuficientes")
+        }
+        const coords = ring.map(([lng, lat]: number[]) => [lat, lng] as [number, number])
+        setPoints(coords.slice(0, -1))
         drawPolygon(map, coords.slice(0, -1))
         const bounds = coords.map(([lat, lng]: number[]) => [lat, lng])
         map.fitBounds(bounds, { padding: [30, 30] })
-      } catch {}
+      } catch (err) {
+        console.error("[AreaMap] Erro ao carregar polígono inicial:", err)
+        setPolygonError("Não foi possível carregar o polígono salvo. Desenhe novamente.")
+      }
     }
   }, [leafletReady])
 
@@ -171,6 +179,11 @@ export function AreaMap({ onPolygonChange, initialPolygon }: AreaMapProps) {
 
   return (
     <div className="space-y-3">
+      {polygonError && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium px-3 py-2 rounded-lg">
+          ⚠️ {polygonError}
+        </div>
+      )}
       {/* Controls */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">

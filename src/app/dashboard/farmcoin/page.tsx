@@ -175,11 +175,11 @@ export default function FarmCoinPage() {
       api.get("/farmcoin/leaderboard"),
       api.get("/areas"),
     ]).then(([w, l, a]) => {
-      setWallet(w.data.wallet)
-      setTransactions(w.data.transactions)
-      setLeaderboard(l.data.leaderboard)
+      setWallet(w.data.wallet ?? null)
+      setTransactions(w.data.transactions ?? [])
+      setLeaderboard(l.data.leaderboard ?? [])
       setAreas(a.data.data ?? [])
-    }).finally(() => setLoading(false))
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   async function handleEmit() {
@@ -194,8 +194,8 @@ export default function FarmCoinPage() {
       })
       setEmitResult(res.data)
       const w = await api.get("/farmcoin/wallet")
-      setWallet(w.data.wallet)
-      setTransactions(w.data.transactions)
+      setWallet(w.data.wallet ?? null)
+      setTransactions(w.data.transactions ?? [])
     } catch (e: any) {
       setEmitResult({ error: e?.response?.data?.error ?? t.emitError })
     } finally { setEmitting(false) }
@@ -208,8 +208,8 @@ export default function FarmCoinPage() {
       const res = await api.post("/farmcoin/energy", { kwh: Number(energy.kwh), month: energy.month })
       setEnergyResult(res.data)
       const w = await api.get("/farmcoin/wallet")
-      setWallet(w.data.wallet)
-      setTransactions(w.data.transactions)
+      setWallet(w.data.wallet ?? null)
+      setTransactions(w.data.transactions ?? [])
     } catch (e: any) {
       setEnergyResult({ error: e?.response?.data?.error ?? t.energyError })
     } finally { setEnergyLoading(false) }
