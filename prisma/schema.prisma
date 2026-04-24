@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Cadastro {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  whatsapp  String
+  cidade    String
+  criadoEm DateTime @default(now())
+
+  @@map("cadastros")
+}

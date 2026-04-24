@@ -1,44 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: #e8e2d9;       /* terra — verde-marrom bem visível */
-  --foreground: #1c1917;
-  --primary: #16a34a;
-  --primary-dark: #15803d;
-  --primary-light: #22c55e;
-  --primary-bg: #f0fdf4;
-  --border: #d4cec5;           /* borda terra */
-  --card: #faf8f4;             /* card creme claro sobre fundo terra */
-  --olive: #7c8b5a;            /* verde-marrom (olive) */
-  --olive-light: #edeade;      /* fundo olive claro */
-  --olive-dark: #5a6640;       /* olive escuro pra texto */
-  --sidebar-bg: #f0ece4;       /* sidebar um toque mais claro que o fundo */
+  --terra-dark:         #18150E;
+  --terra-darker:       #0E0B06;
+  --terra-mid:          #161210;
+  --terra-cream:        #F2EDE4;
+  --terra-cream-dark:   #E8E1D6;
+  --terra-bronze:       #C4944A;
+  --terra-bronze-light: #D4A45A;
+  --terra-text:         #F2EDE4;
+
+  --background: var(--terra-dark);
+  --foreground: var(--terra-text);
+  --border:     rgba(242,237,228,0.1);
+  --card:       #1E1A12;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-dark: var(--primary-dark);
-  --color-primary-light: var(--primary-light);
-  --color-primary-bg: var(--primary-bg);
-  --color-border: var(--border);
-  --color-card: var(--card);
-  --color-olive: var(--olive);
-  --color-olive-light: var(--olive-light);
-  --color-olive-dark: var(--olive-dark);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-terra-dark:         var(--terra-dark);
+  --color-terra-darker:       var(--terra-darker);
+  --color-terra-mid:          var(--terra-mid);
+  --color-terra-cream:        var(--terra-cream);
+  --color-terra-bronze:       var(--terra-bronze);
+  --color-terra-bronze-light: var(--terra-bronze-light);
+  --font-display: var(--font-cormorant);
+  --font-sans:    var(--font-inter);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--terra-dark);
+  color: var(--terra-text);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar personalizada */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+/* ── Grain overlay ─────────────────────────────────── */
+.grain {
+  position: relative;
+}
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  z-index: 0;
+}
+.grain > * { position: relative; z-index: 1; }
+
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--terra-dark); }
+::-webkit-scrollbar-thumb { background: var(--terra-bronze); border-radius: 2px; opacity: 0.5; }
