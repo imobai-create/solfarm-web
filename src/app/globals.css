@@ -1,32 +1,82 @@
 @import "tailwindcss";
 
+/* ─── SolFarm Design Tokens — unificado com EnergyCoin / GrãoFinance / GreenCoinCash ───
+   Paleta light agro: emerald primary + cyan accent + tons terra de identidade   */
 :root {
-  --background: #e8e2d9;       /* terra — verde-marrom bem visível */
-  --foreground: #1c1917;
-  --primary: #16a34a;
-  --primary-dark: #15803d;
-  --primary-light: #22c55e;
-  --primary-bg: #f0fdf4;
-  --border: #d4cec5;           /* borda terra */
-  --card: #faf8f4;             /* card creme claro sobre fundo terra */
-  --olive: #7c8b5a;            /* verde-marrom (olive) */
-  --olive-light: #edeade;      /* fundo olive claro */
-  --olive-dark: #5a6640;       /* olive escuro pra texto */
-  --sidebar-bg: #f0ece4;       /* sidebar um toque mais claro que o fundo */
+  /* Backgrounds */
+  --background: #F7F6F2;       /* creme leve — campo aberto */
+  --foreground: #1A1A1A;       /* texto principal */
+  --card: #FFFFFF;             /* cards brancos */
+  --card-subtle: #FBFAF6;      /* card alternativo */
+  --sidebar-bg: #F0ECE4;       /* sidebar tom terra */
+
+  /* Primary — emerald-500 (compartilhado com Grão/Energy/Green) */
+  --primary: #10B981;
+  --primary-dark: #065F46;
+  --primary-light: #34D399;
+  --primary-bg: #ECFDF5;
+
+  /* Accent — cyan-400 (identidade on-chain da família) */
+  --accent: #22D3EE;
+  --accent-light: #67E8F9;
+  --accent-bg: #ECFEFF;
+
+  /* Gold — valor/destaque */
+  --gold: #F59E0B;
+  --gold-bg: #FEF3C7;
+
+  /* Earth — identidade agro (mantida como secundária) */
+  --earth: #92400e;
+  --earth-light: #fef3c7;
+  --olive: #7c8b5a;
+  --olive-light: #edeade;
+  --olive-dark: #5a6640;
+
+  /* Bordas e textos */
+  --border: #E8E7E1;
+  --text: #1A1A1A;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+
+  /* Semânticos */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #22D3EE;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-subtle: var(--card-subtle);
+
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
   --color-primary-light: var(--primary-light);
   --color-primary-bg: var(--primary-bg);
-  --color-border: var(--border);
-  --color-card: var(--card);
+
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-bg: var(--accent-bg);
+
+  --color-gold: var(--gold);
+  --color-gold-bg: var(--gold-bg);
+
+  --color-earth: var(--earth);
+  --color-earth-light: var(--earth-light);
   --color-olive: var(--olive);
   --color-olive-light: var(--olive-light);
   --color-olive-dark: var(--olive-dark);
+
+  --color-border: var(--border);
+  --color-muted: var(--text-muted);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -34,11 +84,28 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Inter, Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Scrollbar personalizada */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-track { background: var(--card-subtle); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Utilitários pro hero (aurora blobs — padrão EnergyCoin) */
+.hero-aurora {
+  background-image:
+    radial-gradient(60% 50% at 20% 20%, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0) 60%),
+    radial-gradient(50% 45% at 80% 10%, rgba(34,211,238,0.10) 0%, rgba(34,211,238,0) 60%),
+    radial-gradient(70% 50% at 60% 90%, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0) 60%);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
